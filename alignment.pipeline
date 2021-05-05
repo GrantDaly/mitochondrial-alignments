@@ -1,0 +1,90 @@
+{
+   "pipeline":{
+      "actions":[
+         {
+            "containerName":"gCloudIn",
+            "imageUri":"gcr.io/google.com/cloudsdktool/cloud-sdk",
+            "commands":[
+               "/bin/bash",
+               "-c",
+               "mkdir /mnt/data/fastqs; \n                 mkdir /mnt/data/reference;\n                 gsutil -m cp $FASTQ1 /mnt/data/fastqs/R1.fastq.gz ;\n                 gsutil -m cp $FASTQ2 /mnt/data/fastqs/R2.fastq.gz ;\n                 gsutil -m cp $REFERENCEDIR/* /mnt/data/reference;\n                 mkdir /mnt/data/output"
+            ],
+            "mounts":{
+               "disk":"dataDisk",
+               "path":"/mnt/data"
+            },
+            "ignoreExitStatus":"True"
+         },
+         {
+            "containerName":"Cutadapt",
+            "imageUri":"us.gcr.io/alignments-65005/cutadapt",
+            "commands":[
+               "/bin/bash",
+               "-c",
+               "cutadapt --max-n 0.10  -j $NUMBER_THREADS -a AGATCGGAAGAGCACACGTCTGAACTCCAGTCA -A AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT                 -o /mnt/data/fastqs/R1.trimmed.fastq.gz -p /mnt/data/fastqs/R2.trimmed.fastq.gz   /mnt/data/fastqs/R1.fastq.gz /mnt/data/fastqs/R2.fastq.gz | tee /mnt/data/output/adapters.info"
+            ],
+            "mounts":{
+               "disk":"dataDisk",
+               "path":"/mnt/data"
+            },
+            "ignoreExitStatus":"True"
+         },
+         {
+            "containerName":"Sentieon",
+            "imageUri":"us.gcr.io/alignments-65005/sentieon:202010.01.4.21",
+            "commands":[
+               "/bin/bash",
+               "-c",
+               "source alignment-workflow.sh"
+            ],
+            "mounts":{
+               "disk":"dataDisk",
+               "path":"/mnt/data"
+            },
+            "ignoreExitStatus":"True"
+         },
+         {
+            "containerName":"gCloudOut",
+            "imageUri":"gcr.io/google.com/cloudsdktool/cloud-sdk",
+            "commands":[
+               "/bin/bash",
+               "-c",
+               "gsutil -m cp /mnt/data/output/* $OUTPREFIX/$SAMPLE/ ;\n                            gsutil -m cp -r /google $OUTPREFIX/$SAMPLE/align-logs/$SAMPLE\"_\"$ID"
+            ],
+            "mounts":{
+               "disk":"dataDisk",
+               "path":"/mnt/data"
+            }
+         }
+      ],
+      "resources":{
+         "regions":[
+            "us-central1"
+         ],
+         "virtualMachine":{
+            "machineType":"n1-standard-64",
+            "enableStackdriverMonitoring":"True",
+            "serviceAccount":{
+               "email":"lifesciences-api-getter-1@alignments-65005.iam.gserviceaccount.com"
+            },
+            "bootDiskSizeGb":30,
+            "disks":[
+               {
+                  "name":"dataDisk",
+                  "sizeGb":250
+               }
+            ]
+         }
+      },
+      "environment":{
+         "FASTQ1":" All_Libraries_CKDL200161637-1a_HCHJWBBXX_L4_1.fq.gz",
+         "FASTQ2":" All_Libraries_CKDL200161637-1a_HCHJWBBXX_L4_2.fq.gz",
+         "NUMBER_THREADS":"32",
+         "SAMPLE":"L4",
+         "REFERENCEDIR":"gs://south-al-genomics/references/ensembl-98",
+         "REFERENCE":"Homo_sapiens.GRCh38.dna.primary_assembly.ens98.chr.fa",
+         "OUTPREFIX":"gs://south-al-genomics/mitochondrial-DNA/alignments-11-3-20/old-data",
+         "ID":"CKDL200156940-1a-1_HC2W3CCX2_L4"
+      }
+   }
+}
