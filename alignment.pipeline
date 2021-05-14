@@ -31,7 +31,7 @@
          },
          {
             "containerName":"Sentieon",
-            "imageUri":"us.gcr.io/alignments-65005/sentieon:202010.01.4.21",
+            "imageUri":"us.gcr.io/alignments-65005/sentieon:202010.02",
             "commands":[
                "/bin/bash",
                "-c",
