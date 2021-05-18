@@ -34,11 +34,14 @@ storageClient = storage.Client(project="alignments-65005", credentials=credentia
 # dryRun will avoid making alignments to test paramters
 dryRun = False
 inFileName = sys.argv[1]
+print("loading input parameter json")
 with open(inFileName) as f:
     sampleDict = json.load(f)
 
+print("opening alignment pipeline json")
 with open("alignment.pipeline") as alignPipeline:
     align_request_body = json.load(alignPipeline)
+print("opening merge pipeline json")
 with open("merge.pipeline") as mergePipeline:
     merge_bams_body = json.load(mergePipeline)
 
