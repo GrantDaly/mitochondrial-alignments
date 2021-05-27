@@ -62,14 +62,14 @@ def getDepth(chrom, start, end, bamName, binSize=100):
 
     return coverageList
 
-def getInsertsSample(inBed, bamName, sample, maxInsert=1000):
+def getInsertsSample(inBed, bamName, sample, maxInsert):
     inBed = pd.read_csv(inBed, sep="\t", names=["chr", "start", "end", "name", "score", "strand"])
     outDFList = []
     for bedCount, row in inBed.iterrows():
         chrom = row['chr']
         start = row['start']
         end = row['end']        
-        insertDF = pd.DataFrame(getInsertsByRegion(chrom, start, end, bamName, maxInsert=300))
+        insertDF = pd.DataFrame(getInsertsByRegion(chrom, start, end, bamName, maxInsert))
         #         outInsertDFList = []
 #         for index, insertCount in insertArray.iteritems():
 #             outInsertDFList.append({"Sample": sample})
@@ -78,7 +78,7 @@ def getInsertsSample(inBed, bamName, sample, maxInsert=1000):
     return outDF
 
         
-def getInsertsByRegion(chrom, start, end, bamName, maxInsert=300):
+def getInsertsByRegion(chrom, start, end, bamName, maxInsert):
     rawList = []
     samfile = pysam.AlignmentFile(bamName, "rb")
     for read in samfile.fetch(chrom, start, end):
@@ -88,32 +88,32 @@ def getInsertsByRegion(chrom, start, end, bamName, maxInsert=300):
         insertSize = abs(read.template_length)
 
         
-        if((insertSize > 0) and (insertSize < maxInsert) and pair):
+        if(insertSize <= maxInsert):
             rawList.append(insertSize)
         elif((insertSize >= maxInsert) and pair):
             #trying a modification so "maxInsert" corresponds to anything meeting or exceeding maxInsert
             rawList.append(maxInsert)
     samfile.close()
-    return pd.Series(rawList, name="Fragments")
+    return pd.Series(rawList, name="Fragments",dtype="int64")
 
-def driveBedInsert(inBed, inBam, sample, maxInsert=1000):
+def driveBedInsert(inBed, inBam, sample):
 
-    tempSample = getInsertsSample(inBed, inBam, sample)
+    maxInsert = 1000
+    tempSample = getInsertsSample(inBed, inBam, sample, maxInsert)
     sampleStats = tempSample['Fragments'].describe()
     sampleStats['Sample'] = sample
         
     #histograms
-    intervalLength = 300
+    intervalLength = 1000
     sampleDens, sampleIntervals = np.histogram(tempSample['Fragments'],bins=np.arange(1,intervalLength + 2,1), density=True)
-    sampleDens = pd.Series(sampleDens, name="Raw Density")
-    sampleIntervals = pd.Series(sampleIntervals[:intervalLength], name="Intervals")
+    sampleDens = pd.Series(sampleDens, name="Raw Density",dtype="float64")
+    sampleIntervals = pd.Series(sampleIntervals[:intervalLength], name="Intervals",dtype="int64")
     sampleHist = pd.concat([sampleDens, sampleIntervals], axis=1)
 
     sampleHist['Sample'] = sample
     sampleHist['% Density'] = sampleHist['Raw Density'] * 100
     
     return sampleStats, sampleHist
-
 
 credentials = service_account.Credentials.from_service_account_file(
     '/home/gtd1521_jagmail_southalabama_edu/huvecs/development/google-cloud/alignments-65005-fdd2a449ed54.json')
@@ -165,7 +165,9 @@ sampleList = sampleDict['sampleList']
 for sample in sampleList:
     sampleURL = sample['sample']
 
+    # in json files need trailing "/"
     sampleName = sampleURL.split("/")[-2]
+    
     print(sampleName)
 
     sampleRegex = re.compile(r'gs:\/\/([a-zA-Z0-9_-]+)(\/)(.+)')
@@ -229,7 +231,7 @@ for sample in sampleList:
     numtBedName = "beds/numt-GRCh38.fixed.bed"
     tempNumtDepth = getDepthSample(numtBedName,tempBamName , sampleName)
     numtDepthList.append(tempNumtDepth)
-
+    
     tempInsertStatsNumt, tempInsertHistNumt = driveBedInsert(numtBedName, tempBamName, sampleName)
     numtInsertStatsList.append(tempInsertStatsNumt)
     numtInsertHistList.append(tempInsertHistNumt)
@@ -239,17 +241,21 @@ for sample in sampleList:
     tempShufDepth = getDepthSample(shufBedName,tempBamName , sampleName)
     shuffleDepthList.append(tempShufDepth)
 
-    tempInsertStatsShuf, tempInsertHistShuf = driveBedInsert(shufBedName, tempBamName, sampleName)
-    shuffleInsertStatsList.append(tempInsertStatsShuf)
-    shuffleInsertHistList.append(tempInsertHistShuf)
+    # don't want to keep shuffled inserts because sparse
+    # tempInsertStatsShuf, tempInsertHistShuf = driveBedInsert(shufBedName, tempBamName, sampleName)
+    # shuffleInsertStatsList.append(tempInsertStatsShuf)
+    # shuffleInsertHistList.append(tempInsertHistShuf)
     
     print("Calculating Dayama Stats")
     dayamaBedName = "beds/dayama.grch38.200slop.bed"
     tempDayamaDepth = getDepthSample(dayamaBedName,tempBamName , sampleName)
     dayamaDepthList.append(tempDayamaDepth)
-    tempInsertStatsDayama, tempInsertHistDayama = driveBedInsert(dayamaBedName, tempBamName, sampleName)
-    dayamaInsertStatsList.append(tempInsertStatsDayama)
-    dayamaInsertHistList.append(tempInsertHistDayama)
+
+
+    # also sparse so don't want inserts
+    # tempInsertStatsDayama, tempInsertHistDayama = driveBedInsert(dayamaBedName, tempBamName, sampleName)
+    # dayamaInsertStatsList.append(tempInsertStatsDayama)
+    # dayamaInsertHistList.append(tempInsertHistDayama)
 
 
     print("Calculating Mito Stats")
@@ -273,8 +279,8 @@ for sample in sampleList:
 print("Done with processing")
 # concat Depth Samples
 concatDepthNumt = pd.concat(numtDepthList, axis=0)
-concatDepthShuf = pd.concat(shuffleDepthList, axis=0)
-concatDepthDayama = pd.concat(dayamaDepthList, axis=0)
+#concatDepthShuf = pd.concat(shuffleDepthList, axis=0)
+#concatDepthDayama = pd.concat(dayamaDepthList, axis=0)
 concatDepthMito = pd.concat(mitoDepthList, axis=0)
 
 
@@ -285,20 +291,20 @@ if not outDirCov.is_dir():
     outDirCov.mkdir()
 
 concatDepthNumt.to_csv(outDirCov / "Numt-Coverages.tsv", sep="\t", index=False)
-concatDepthShuf.to_csv(outDirCov / "Shuffled-Coverages.tsv", sep="\t", index=False)
-concatDepthDayama.to_csv(outDirCov / "Dayama-Coverages.tsv", sep="\t", index=False)
+#concatDepthShuf.to_csv(outDirCov / "Shuffled-Coverages.tsv", sep="\t", index=False)
+#concatDepthDayama.to_csv(outDirCov / "Dayama-Coverages.tsv", sep="\t", index=False)
 concatDepthMito.to_csv(outDirCov / "Mito-Coverages.tsv", sep="\t", index=False)
 
 # concat Inserts
 
 concatInsertStatsNumt = pd.DataFrame(numtInsertStatsList).reset_index(drop=True)
-concatInsertStatsShuf = pd.DataFrame(shuffleInsertStatsList).reset_index(drop=True)
-concatInsertStatsDayama = pd.DataFrame(dayamaInsertStatsList).reset_index(drop=True)
+#concatInsertStatsShuf = pd.DataFrame(shuffleInsertStatsList).reset_index(drop=True)
+#concatInsertStatsDayama = pd.DataFrame(dayamaInsertStatsList).reset_index(drop=True)
 concatInsertStatsMito = pd.DataFrame(mitoInsertStatsList).reset_index(drop=True)
 
 concatInsertHistNumt = pd.concat(numtInsertHistList, axis=0)
-concatInsertHistShuf = pd.concat(shuffleInsertHistList, axis=0)
-concatInsertHistDayama = pd.concat(dayamaInsertHistList, axis=0)
+#concatInsertHistShuf = pd.concat(shuffleInsertHistList, axis=0)
+#concatInsertHistDayama = pd.concat(dayamaInsertHistList, axis=0)
 concatInsertHistMito = pd.concat(mitoInsertHistList, axis=0)
 
 outDirInserts = outDir / "insert-outputs"
@@ -307,12 +313,12 @@ if not outDirInserts.is_dir():
 
 print("Writing intermediate tsv files")
 concatInsertStatsNumt.to_csv(outDirInserts / "Numt-InsertStats.tsv", sep="\t", index=False)
-concatInsertStatsShuf.to_csv(outDirInserts / "Shuffled-InsertStats.tsv", sep="\t", index=False)
-concatInsertStatsDayama.to_csv(outDirInserts / "Dayama-InsertStats.tsv", sep="\t", index=False)
+#concatInsertStatsShuf.to_csv(outDirInserts / "Shuffled-InsertStats.tsv", sep="\t", index=False)
+#concatInsertStatsDayama.to_csv(outDirInserts / "Dayama-InsertStats.tsv", sep="\t", index=False)
 concatInsertStatsMito.to_csv(outDirInserts / "Mito-InsertStats.tsv", sep="\t", index=False)
 
 concatInsertHistNumt.to_csv(outDirInserts / "Numt-InsertHist.tsv", sep="\t", index=False)
-concatInsertHistShuf.to_csv(outDirInserts / "Shuffled-InsertHist.tsv", sep="\t", index=False)
-concatInsertHistDayama.to_csv(outDirInserts / "Dayama-InsertHist.tsv", sep="\t", index=False)
+#concatInsertHistShuf.to_csv(outDirInserts / "Shuffled-InsertHist.tsv", sep="\t", index=False)
+#concatInsertHistDayama.to_csv(outDirInserts / "Dayama-InsertHist.tsv", sep="\t", index=False)
 concatInsertHistMito.to_csv(outDirInserts / "Mito-InsertHist.tsv", sep="\t", index=False)
 
