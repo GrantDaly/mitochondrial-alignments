@@ -90,9 +90,7 @@ def getInsertsByRegion(chrom, start, end, bamName, maxInsert):
         
         if(insertSize <= maxInsert):
             rawList.append(insertSize)
-        elif((insertSize >= maxInsert) and pair):
-            #trying a modification so "maxInsert" corresponds to anything meeting or exceeding maxInsert
-            rawList.append(maxInsert)
+        
     samfile.close()
     return pd.Series(rawList, name="Fragments",dtype="int64")
 
@@ -279,8 +277,8 @@ for sample in sampleList:
 print("Done with processing")
 # concat Depth Samples
 concatDepthNumt = pd.concat(numtDepthList, axis=0)
-#concatDepthShuf = pd.concat(shuffleDepthList, axis=0)
-#concatDepthDayama = pd.concat(dayamaDepthList, axis=0)
+concatDepthShuf = pd.concat(shuffleDepthList, axis=0)
+concatDepthDayama = pd.concat(dayamaDepthList, axis=0)
 concatDepthMito = pd.concat(mitoDepthList, axis=0)
 
 
@@ -291,8 +289,8 @@ if not outDirCov.is_dir():
     outDirCov.mkdir()
 
 concatDepthNumt.to_csv(outDirCov / "Numt-Coverages.tsv", sep="\t", index=False)
-#concatDepthShuf.to_csv(outDirCov / "Shuffled-Coverages.tsv", sep="\t", index=False)
-#concatDepthDayama.to_csv(outDirCov / "Dayama-Coverages.tsv", sep="\t", index=False)
+concatDepthShuf.to_csv(outDirCov / "Shuffled-Coverages.tsv", sep="\t", index=False)
+concatDepthDayama.to_csv(outDirCov / "Dayama-Coverages.tsv", sep="\t", index=False)
 concatDepthMito.to_csv(outDirCov / "Mito-Coverages.tsv", sep="\t", index=False)
 
 # concat Inserts
