@@ -1,0 +1,26 @@
+{
+   "bucket":"south-al-genomics",
+   "blob-prefix":"sampleData/testTrauma",
+   "reference-dir":"gs://south-al-genomics/references/ensembl-98",
+   "reference":"Homo_sapiens.GRCh38.dna.primary_assembly.ens98.chr.fa",
+   "sampleList":[
+      {
+         "sample":"T100_0",
+         "library": "CKDL210006530-1a-D706-AK1546",
+         "flowcellList":[
+            {
+               "flowcell":"HFWFVCCX2",
+               "lane":"L6",
+               "fastq1":"gs://south-al-genomics/novogene-trauma-4-20-21/raw_data/T100_0/T100_0_CKDL210006530-1a-D706-AK1546_HFWFVCCX2_L6_1.fq.gz",
+               "fastq2":"gs://south-al-genomics/novogene-trauma-4-20-21/raw_data/T100_0/T100_0_CKDL210006530-1a-D706-AK1546_HFWFVCCX2_L6_2.fq.gz"
+            },
+            {
+               "flowcell":"HFWFVCCX2",
+               "lane":"L7",
+               "fastq1":"gs://south-al-genomics/novogene-trauma-4-20-21/raw_data/T100_0/T100_0_CKDL210006530-1a-D706-AK1546_HFWFVCCX2_L7_1.fq.gz",
+               "fastq2":"gs://south-al-genomics/novogene-trauma-4-20-21/raw_data/T100_0/T100_0_CKDL210006530-1a-D706-AK1546_HFWFVCCX2_L7_2.fq.gz"
+            }
+         ]
+      }
+   ]
+}
