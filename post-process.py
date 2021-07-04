@@ -82,17 +82,47 @@ def getInsertsByRegion(chrom, start, end, bamName, maxInsert):
     rawList = []
     samfile = pysam.AlignmentFile(bamName, "rb")
     for read in samfile.fetch(chrom, start, end):
-        pair = read.is_proper_pair
+        #pair = read.is_proper_pair
         qual = read.mapping_quality
 
         insertSize = abs(read.template_length)
 
+        # make sure there isn't excessive soft clipping. Usually occurs at insertion site
+        # seems to return erroneous 0 length reads.
+        readLength = read.infer_query_length()
+        if not readLength:
+            continue
+        cigarStats, cigarBlocks  = read.get_cigar_stats()
+        
+        numberMatches = cigarStats[0]
+        try:
+            fracMatches = numberMatches / readLength
+        except TypeError:
+             continue
+        
+        if(fracMatches < 0.90):
+            continue
         
         if(insertSize <= maxInsert):
             rawList.append(insertSize)
         
     samfile.close()
     return pd.Series(rawList, name="Fragments",dtype="int64")
+
+def smoothDensity(inDF, binSize=3):
+    inDFSorted = inDF.sort_values("Intervals")
+    numEntries = len(inDFSorted)
+    densityArray = inDF['% Density'].to_numpy()
+    outArray = np.zeros(len(densityArray))
+    centerOffset = binSize // 2
+
+    for i in range(numEntries - binSize + 1):
+#         print(densityArray[i: i + 3])
+        tempMedian = np.median(densityArray[i: i + binSize])
+        outArray[i + centerOffset] = tempMedian
+    outSeries = pd.Series(outArray)
+    return outSeries
+
 
 def driveBedInsert(inBed, inBam, sample):
 
@@ -110,6 +140,7 @@ def driveBedInsert(inBed, inBam, sample):
 
     sampleHist['Sample'] = sample
     sampleHist['% Density'] = sampleHist['Raw Density'] * 100
+    sampleHist['Smoothed % Density'] = smoothDensity(sampleHist,binSize=5)
     
     return sampleStats, sampleHist
 

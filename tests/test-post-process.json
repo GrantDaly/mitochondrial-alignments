@@ -1,0 +1,10 @@
+{
+   "sampleList":[
+      {
+         "sample":"gs://south-al-genomics/mitochondrial4_23_19/alignments/S10_0/"
+      },
+      {
+         "sample":"gs://south-al-genomics/mitochondrial4_23_19/alignments/S10_72/"
+      }
+   ]
+}

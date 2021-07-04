@@ -31,6 +31,8 @@ service = build('lifesciences', 'v2beta', credentials=scoped_credentials)
 #storage client
 storageClient = storage.Client(project="alignments-65005", credentials=credentials)
 
+
+
 # dryRun will avoid making alignments to test paramters
 dryRun = False
 inFileName = sys.argv[1]
@@ -46,6 +48,7 @@ with open("merge.pipeline") as mergePipeline:
     merge_bams_body = json.load(mergePipeline)
 
 bucket = sampleDict['bucket']
+bucket_object = storageClient.bucket(bucket)
 parent = 'projects/alignments-65005/locations/us-central1'
 prefixDirBlob =  sampleDict['blob-prefix']
 prefixDir = "gs://" + bucket + "/" + prefixDirBlob
@@ -164,3 +167,46 @@ for sample in sampleList:
             if(result and not dryRun):
                 blob.delete()
         print("Done Sample " + sampleName)
+
+    elif(numberLanes == 1):
+        
+        blobPrefix = prefixDirBlob + "/" + sampleName
+        newBamName = blobPrefix + "/" + sampleName + ".sorted.merged.bam"
+        newBaiName = newBamName + ".bai"
+
+
+
+
+        # copy bam
+        blobs = storageClient.list_blobs(bucket, prefix=blobPrefix)
+
+        prog = re.compile(r'.sorted.bam$')
+        # copy bam
+        for blob in blobs:
+            #print("changing names from %s" % blob.name)
+            result = prog.findall(blob.name)
+            if(result and not dryRun):
+                #blob.delete()
+                # .sorted.merged.bam
+                print("could copyt %s" % blob.name)
+                print("new name  %s" % newBamName)
+                _ = bucket_object.copy_blob(blob, bucket_object, new_name=newBamName)
+                blob.delete()
+        print("Done Sample " + sampleName)
+
+        # copy bai
+        blobs = storageClient.list_blobs(bucket, prefix=blobPrefix)
+        prog = re.compile(r'.sorted.bam.bai')
+        # copy bam
+        for blob in blobs:
+            #print("changing names from %s" % blob.name)
+            result = prog.findall(blob.name)
+            if(result and not dryRun):
+                #blob.delete()
+                # .sorted.merged.bam
+                print("could copyt %s" % blob.name)
+                print("new name  %s" % newBamName)
+                _ = bucket_object.copy_blob(blob, bucket_object, new_name=newBaiName)
+                blob.delete()
+        print("Done Sample " + sampleName)
+
