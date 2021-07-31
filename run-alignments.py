@@ -43,9 +43,12 @@ with open(inFileName) as f:
 print("opening alignment pipeline json")
 with open("alignment.pipeline") as alignPipeline:
     align_request_body = json.load(alignPipeline)
+    print("alignment pipeline")
+    pprint(align_request_body)
 print("opening merge pipeline json")
 with open("merge.pipeline") as mergePipeline:
     merge_bams_body = json.load(mergePipeline)
+    pprint(merge_bams_body)
 
 bucket = sampleDict['bucket']
 bucket_object = storageClient.bucket(bucket)
@@ -204,8 +207,6 @@ for sample in sampleList:
             if(result and not dryRun):
                 #blob.delete()
                 # .sorted.merged.bam
-                print("could copyt %s" % blob.name)
-                print("new name  %s" % newBamName)
                 _ = bucket_object.copy_blob(blob, bucket_object, new_name=newBaiName)
                 blob.delete()
         print("Done Sample " + sampleName)

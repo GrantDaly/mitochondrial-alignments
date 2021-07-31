@@ -53,6 +53,8 @@ def getDepth(chrom, start, end, bamName, binSize=100):
         #print("Bin Starting with %d" % tempStart)
         if not (tempStart < tempEnd):
             continue
+        if(chrom == "chrM"):
+            print("start %d end %d" % (tempStart, tempEnd))
         tempCoverageList = samfile.count_coverage(chrom, start=tempStart, stop=tempEnd, read_callback=readFilter)
         
         tempCoverageList = [sum(base) for base in zip(*tempCoverageList)]
@@ -89,19 +91,20 @@ def getInsertsByRegion(chrom, start, end, bamName, maxInsert):
 
         # make sure there isn't excessive soft clipping. Usually occurs at insertion site
         # seems to return erroneous 0 length reads.
+        # now an issue where there are genuinely clipped reads. also the idea that spikes were all from insertion events didn't pan out. smoothing function seemed to fix this
         readLength = read.infer_query_length()
         if not readLength:
             continue
         cigarStats, cigarBlocks  = read.get_cigar_stats()
         
-        numberMatches = cigarStats[0]
-        try:
-            fracMatches = numberMatches / readLength
-        except TypeError:
-             continue
+        # numberMatches = cigarStats[0]
+        # try:
+        #     fracMatches = numberMatches / readLength
+        # except TypeError:
+        #      continue
         
-        if(fracMatches < 0.90):
-            continue
+        # if(fracMatches < 0.90):
+        #     continue
         
         if(insertSize <= maxInsert):
             rawList.append(insertSize)
@@ -290,6 +293,7 @@ for sample in sampleList:
     print("Calculating Mito Stats")
     mitoBedName = "beds/mito.full.human.bed"
     print("Coverage")
+    
     tempMitoDepth = getDepthSample(mitoBedName,tempBamName , sampleName)
     mitoDepthList.append(tempMitoDepth)
     print("Done with Coverage")

@@ -131,6 +131,9 @@ insertStatsAll.to_excel(writer, "Insert Stats",index=False)
 insertHistPivot = insertHistAll.pivot_table(index=["Intervals"], columns=["Sample","Insert Origin"], values=["% Density"])
 insertHistPivot.to_excel(writer, "Insert Distributions")
 
+insertHistPivot = insertHistAll.pivot_table(index=["Intervals"], columns=["Sample","Insert Origin"], values=["Smoothed % Density"])
+insertHistPivot.to_excel(writer, "Smoothed Insert Distributions")
+
 meanCovMerged.to_excel(writer, "Coverage Stats",index=False)
 
 #binned mito coverage
