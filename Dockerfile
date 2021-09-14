@@ -1,17 +1,8 @@
-From ubuntu:18.04
+FROM continuumio/miniconda3
 
-RUN apt-get update && apt-get install -y python \
-python-pip \
-dnsutils
-
-ENV PATH="/opt/sentieon-genomics/bin/:${PATH}"
-COPY sentieon-genomics-202010.02 /opt/sentieon-genomics
-COPY gen_credentials.py /opt/gen_credentials.py
-COPY sentieonStartup.sh /opt/sentieonStartup.sh
-COPY alignment-workflow.sh .
-COPY requirements.txt .
-
-
-RUN pip install -r requirements.txt
-
-#ENTRYPOINT ["/bin/bash", "/opt/sentieonStartup.sh;"]
+RUN conda config --add channels defaults && \
+ conda config --add channels bioconda && \
+conda config --add channels conda-forge && \
+ conda install bwa && conda update bwa && \
+conda install samtools && conda update samtools && \
+conda install cutadapt && conda update cutadapt
