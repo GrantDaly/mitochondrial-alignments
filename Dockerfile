@@ -30,5 +30,6 @@ cd ~ && rm -r htslib samtools bcftools
 ADD cpp /cpp/
 RUN ldconfig && \
 g++ --std=c++20 -g -Wall -O3 -o inserts-and-cov /cpp/inserts-and-cov.cpp \
-`pkg-config --cflags gsl htslib` `pkg-config --libs gsl htslib` && rm -r cpp/ 
+`pkg-config --cflags gsl htslib` `pkg-config --libs gsl htslib` && rm -r cpp/ && \
+cp inserts-and-cov /usr/local/bin
 

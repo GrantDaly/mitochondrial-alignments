@@ -1,0 +1,10 @@
+{
+  "coverageAndInsert.fasta": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta",
+      "coverageAndInsert.fasta_index": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai",
+  "coverageAndInsert.beds": [{"bedFile": "gs://south-al-genomics/references/mitochondria/beds/numt-GRCh38.fixed.bed", "name": "numt"},
+  {"bedFile": "gs://south-al-genomics/references/mitochondria/beds/mito.full.human.bed", "name": "mito"}],
+  "coverageAndInsert.samples": [{"name": "S9_0", "alignment":"gs://south-al-genomics/sampleData/wdl-test/align/output/S9_0.bam",
+  "index":"gs://south-al-genomics/sampleData/wdl-test/align/output/S9_0.bam.bai"},
+  {"name": "MGUSA_8", "alignment":"gs://south-al-genomics/sampleData/wdl-test/align/output/TestSamp2.bam",
+  "index":"gs://south-al-genomics/sampleData/wdl-test/align/output/TestSamp2.bam.bai"}]
+}
