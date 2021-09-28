@@ -323,7 +323,7 @@ int main(int argc, char* argv[]){
      //percentDensityInsert[outInsertSize] = (tempInsert / (double) insertCount ) * 100.0;
      
        outInsertHistFile << sampleName << "\t" << outInsertSize + 1 << "\t"
-		     << "\t" << rawInsertHist[outInsertSize] << "\t" 
+		     << rawInsertHist[outInsertSize] << "\t" 
 		     << percentDensityInsert[outInsertSize] << "\t"
 		     << smoothedPercentDensity[outInsertSize] << std::endl;
      }
