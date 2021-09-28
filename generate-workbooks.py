@@ -5,40 +5,20 @@ from pathlib import Path
 import pyranges as pr
 import sys
 from pathlib import Path
+import json
+import glob
+import datetime
+import gzip
+import requests
+
 # insert stats
 
-workingDir = Path(sys.argv[1])
-designDF = pd.read_csv(workingDir / "design.csv", sep="\t")
+#
 
-insertDtypes = {"Chromosome":"object",
-                "Start": "int64","End":"int64",
-	        "Name":"object","Score":"float64","Strand":"object",
-	        "Sample":"object","Offset":"int64","Depth":"int64"}
-insertDir = Path(workingDir / "insert-outputs")
-insertDtypes = {}
-
-numtInsertStats = pd.read_csv(insertDir / "Numt-InsertStats.tsv", sep="\t",dtype=insertDtypes)
-
-numtInsertHist = pd.read_csv(insertDir / "Numt-InsertHist.tsv", sep="\t",dtype=insertDtypes)
-
-
-mitoInsertStats= pd.read_csv(insertDir / "Mito-InsertStats.tsv", sep="\t",dtype=insertDtypes)
-
-mitoInsertHist= pd.read_csv(insertDir / "Mito-InsertHist.tsv", sep="\t",dtype=insertDtypes)
-
-
-numtInsertStats["Insert Origin"] = "NUMT"
-numtInsertHist["Insert Origin"] = "NUMT"
-mitoInsertStats["Insert Origin"] = "Mito"
-mitoInsertHist["Insert Origin"] = "Mito"
-
-insertStatsAll = pd.concat([numtInsertStats, mitoInsertStats], axis=0)
-insertHistAll = pd.concat([numtInsertHist, mitoInsertHist], axis=0)
-
-insertStatsAll = insertStatsAll.merge(designDF, on="Sample", how="left")
-insertHistAll = insertHistAll.merge(designDF, on="Sample", how="left")
-
-covDtypes = {
+def getRawCoverageDF(bedPrefix, inputDir, aggregate=False):
+    covGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".coverage.tsv")
+    #pdb.set_trace()
+    covDtypes = {
     "Chromosome":"object",
     "Start":"int64",
     "End":"int64",
@@ -47,152 +27,444 @@ covDtypes = {
     "Strand":"object",
     "Sample":"object",
     "Offset":"int64",
-    "Depth":"int64"
-}
-# coverage stats
-coverageDir = Path(workingDir / "coverage-outputs")
+    "Forward_Depth": "int64",
+    "Reverse_Depth": "int64",
+        "Depth":"int64"}
 
-mitoCovCutdown = pd.read_csv(coverageDir / "Mito-Coverages.tsv", sep="\t",dtype=covDtypes)
-
-numtCovCutdown = pd.read_csv(coverageDir / "Numt-Coverages.tsv", sep="\t",dtype=covDtypes)
-
-shufNumtCovCutdown = pd.read_csv(coverageDir / "Shuffled-Coverages.tsv", sep="\t",dtype=covDtypes)
-
-dayamaCovCutdown = pd.read_csv(coverageDir / "Dayama-Coverages.tsv", sep="\t",dtype=covDtypes)
-# these are the coverages aligned only to the mitochondria
-
-
-#aggregate by numt
-covByNumt = numtCovCutdown.groupby(["Name", "Chromosome", "Start", "End", "Strand","Score","Sample"])["Depth"].agg('sum').reset_index()
-covByNumt['Length'] = covByNumt['End'] - covByNumt['Start']
-covByNumt['Mean'] = covByNumt['Depth'] / covByNumt['Length']
-
-#aggregate by shuffle
-covByShuf = shufNumtCovCutdown.groupby(["Name", "Chromosome", "Start", "End", "Strand","Score","Sample"])["Depth"].agg('sum').reset_index()
-covByShuf['Length'] = covByShuf['End'] - covByShuf['Start']
-covByShuf['Mean'] = covByShuf['Depth'] / covByShuf['Length']
-
-#aggregate by Dayama
-covByDayama = dayamaCovCutdown.groupby(["Name", "Chromosome", "Start", "End", "Strand","Score","Sample"])["Depth"].agg('sum').reset_index()
-covByDayama['Length'] = covByDayama['End'] - covByDayama['Start']
-covByDayama['Mean'] = covByDayama['Depth'] / covByDayama['Length']
+    coverageList = []
+    
+    for filename in covGlob:
+        tempCovDF = pd.read_csv(filename, sep="\t", dtype=covDtypes)
+        if(aggregate == True):
+            
+            tempCovDF = tempCovDF.groupby(["Name", "Chromosome", "Start", "End", "Strand","Score","Sample"])["Depth"].agg('sum').reset_index()
+            tempCovDF = tempCovDF.rename(columns={'Depth': 'Total Depth'})
+            tempCovDF['Length'] = tempCovDF['End'] - tempCovDF['Start']
+            tempCovDF['Mean Depth'] = tempCovDF['Total Depth'] / tempCovDF['Length']
+        coverageList.append(tempCovDF)
 
 
-# normalize each site in mito by dividing by mean NUMT coverage
-numtStats = numtCovCutdown.loc[:, ["Sample", "Depth"]].groupby("Sample").describe()
-numtMeans = numtCovCutdown.loc[:, ["Sample", "Depth"]].groupby("Sample").agg('mean')
+    covGlobStats = glob.glob(str(inputDir) + "/*." + bedPrefix + ".coverage.stats.tsv")
+    coverageStatList = []
+    for statsFilename in covGlobStats:
+        tempCovStatsDF = pd.read_csv(statsFilename, sep="\t")
+        coverageStatList.append(tempCovStatsDF)
 
-# Normalize by mean numt coverages
+    outCovDF = pd.concat(coverageList, axis=0)
+    outCovStatsDF = pd.concat(coverageStatList, axis=0)
 
-humanMtNorm = mitoCovCutdown.merge(numtMeans, how="left", on="Sample", suffixes=["_Mito", "_NUMT"])
-humanMtNorm["Norm Depth"] = humanMtNorm["Depth_Mito"] / humanMtNorm["Depth_NUMT"]
+    return outCovDF, outCovStatsDF
+
+def getRawInsertsDF(bedPrefix, inputDir):
+
+    insertDtypes = {"Sample":"object",
+                "Intervals": "int64",
+	        "Raw Density":"float64", "% Density":"float64",
+	        "Smoothed % Density":"float64"}
+
+    insertHistList = []
+    insertHistGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".insert.hist.tsv")
+    for insertFileName in insertHistGlob:
+        tempHist = pd.read_csv(insertFileName, sep="\t", dtype=insertDtypes)
+        insertHistList.append(tempHist)
+    insertHistDF = pd.concat(insertHistList, axis=0)
+
+    insertStatsList = []
+    insertStatsGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".insert.stats.tsv")
+    for insertStatFile in insertStatsGlob:
+        tempStats = pd.read_csv(insertStatFile, sep="\t")
+        insertStatsList.append(tempStats)
+    insertStatDF = pd.concat(insertStatsList, axis=0)
+
+    return insertHistDF, insertStatDF
+
+def createBigWigs(coverageDir, designDF, normMitoCov):
+    
+    # generate bedgraphs and bigwigs
+    outDirRaw = Path(coverageDir / "raw-coverages")
+    outDirNorm = Path(coverageDir / "norm-coverages")
+    if not outDirRaw.is_dir():
+        outDirRaw.mkdir()
+    if not outDirNorm.is_dir():
+        outDirNorm.mkdir()
+        "Human-Numt-Coverage-Raw.tsv"
+
+    rawDesignList = []
+    normDesignList = []
+    for name, group in normMitoCov.groupby("Sample"):
+
+        designEntry = designDF.query('Sample == @name')
+        individual = designEntry['Individual ID'].to_list()[0]
+        sampleName = designEntry['Sample'].to_list()[0]
+        condition = designEntry['Condition'].to_list()[0]
+
+        outGroup = group.copy().reset_index(drop=True)
+        outGroup['Start'] = outGroup['Offset']
+        outGroup['End']  = outGroup['Start'] + 1
+        outGroupNorm = outGroup.copy()
+
+    #    outGroup['Count'] = outGroup['Depth'] 
+    #    outGroupNorm['Count'] = outGroup['Norm Depth']
+
+        outNameRaw = name + "-raw"
+        outNameNorm = name + "-norm"
+
+    #     filenameList.append(outName)
+
+        # only outputting bigwigs for now.
+
+        outGroupRawAll = outGroup.loc[:, ["Chromosome", "Start", "End", "Depth", "Forward_Depth", "Reverse_Depth"]]
+
+        #outGroupRawAll['Percent_Diff_Strand'] = ((outGroupRawAll['Forward_Depth'] - outGroupRawAll['Reverse_Depth']) /  outGroupRawAll['Reverse_Depth']) * 100
+        #pdb.set_trace()
+        outGroupRawAll['LogFC_Diff_Strand'] = np.log2((outGroupRawAll['Forward_Depth'] + 1) /  (outGroupRawAll['Reverse_Depth'] + 1))
+
+        #outGroup.to_csv(outDirRaw / (outNameRaw + ".bg"), sep="\t", index=False, header=False)
+
+        outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Norm Depth"]]
+        #outGroupNorm.to_csv(outDirNorm / (outNameNorm + ".bg"), sep="\t", index=False, header=False)
+
+        # pyranges to_bigwig not working
+        tempPyRangesRaw = pr.PyRanges(outGroupRawAll)
+
+        outRawString = str(outDirRaw / (outNameRaw + ".bw"))
+        outRawStringFor = str(outDirRaw / (outNameRaw + ".F1R2.bw"))
+        outRawStringRev = str(outDirRaw / (outNameRaw + ".F2R1.bw"))
+        outRawStringDiff = str(outDirRaw / (outNameRaw + ".StrandDiff.bw"))
+        tempPyRangesRaw.to_bigwig(path = outRawString, value_col="Depth")
+        #pdb.set_trace()
+        rawDesignList.append({'TRACK_ID': outNameRaw + ".bw", 'INDIVIDUAL_ID': individual,
+                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand': "Both",
+                              'Condition-Strand': 'NA'})
+        tempPyRangesRaw.to_bigwig(path = outRawStringFor, value_col="Forward_Depth")
+        rawDesignList.append({'TRACK_ID': outNameRaw + ".F1R2.bw", 'INDIVIDUAL_ID': individual,
+                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Forward",
+                              "Condition-Strand": condition + "-Forward"})
+
+        tempPyRangesRaw.to_bigwig(path = outRawStringRev, value_col="Reverse_Depth")
+        rawDesignList.append({'TRACK_ID': outNameRaw + ".F2R1.bw", 'INDIVIDUAL_ID': individual,
+                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
+                              'Condition-Strand': condition + "-Reverse"})
+
+        tempPyRangesRaw.to_bigwig(path = outRawStringDiff, value_col="LogFC_Diff_Strand")
+        rawDesignList.append({'TRACK_ID': outNameRaw + ".StrandDiff.bw", 'INDIVIDUAL_ID': individual,
+                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"LogFC",
+                              'Condition-Strand': "NA"})
 
 
-covByNumt = covByNumt.merge(numtMeans.rename(columns={"Depth": "Mean All NUMT"})
-                    , how="left", on="Sample")
-covByNumt['Normalized Mean'] = covByNumt['Mean'] / covByNumt['Mean All NUMT']
+        tempPyRangesNorm = pr.PyRanges(outGroupNorm)
+        outNormString = str(outDirNorm / (outNameNorm + ".bw"))
+        tempPyRangesNorm.to_bigwig(path = outNormString, value_col="Norm Depth")
+        normDesignList.append({'TRACK_ID': outNameNorm + ".bw", 'INDIVIDUAL_ID': individual,
+                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Both"})
 
-covByShuf = covByShuf.merge(numtMeans.rename(columns={"Depth": "Mean All NUMT"})
-                    , how="left", on="Sample")
-covByShuf['Normalized Mean'] = covByShuf['Mean'] / covByShuf['Mean All NUMT']
 
-covByDayama = covByDayama.merge(numtMeans.rename(columns={"Depth": "Mean All NUMT"})
-                    , how="left", on="Sample")
-covByDayama['Normalized Mean'] = covByDayama['Mean'] / covByDayama['Mean All NUMT']
+    outRawDesignDF = pd.DataFrame(rawDesignList)
+    outRawDesignDF['DATA_Type'] = "Expression"
 
-# bin 100 bp bins
-humanMtNormBins = humanMtNorm.reset_index().copy()
-humanMtNormBins['Bin'] = (humanMtNormBins['Offset'] // 100 ) + 1
-binnedMeans = pd.pivot_table(humanMtNormBins, values=["Depth_Mito", "Norm Depth"], index=["Bin"], columns="Sample", aggfunc="mean")
+    outRawDesignDF.loc[:,["TRACK_ID", "DATA_Type", "INDIVIDUAL_ID", "SAMPLE_ID", "Condition","Strand","Condition-Strand"]]\
+                             .to_csv(outDirRaw / "raw-attributes.txt", sep="\t", index=None)
 
-# mitochondrial stats
-mitoStats = humanMtNorm.groupby('Sample')[['Depth_Mito', 'Norm Depth', 'Depth_NUMT']].describe()
-mitoStatsFlat = mitoStats.copy()
-mitoStatsFlat.columns = mitoStatsFlat.columns.map('_'.join)
 
-# mitoNormStats = humanMtNorm.groupby('Sample')['Norm Depth'].describe()
-mitoStatsFlat['Depth_Mito_cv'] = mitoStatsFlat['Depth_Mito_mean'] / mitoStatsFlat['Depth_Mito_std']
-mitoStatsFlat['Norm Depth_cv'] = mitoStatsFlat['Norm Depth_mean'] / mitoStatsFlat['Norm Depth_std']
-mitoStatsFlat['Depth_NUMT_cv'] = mitoStatsFlat['Depth_NUMT_mean'] / mitoStatsFlat['Depth_NUMT_std']
+    outNormDesignDF = pd.DataFrame(normDesignList)
+    outNormDesignDF['DATA_Type'] = "Expression"
 
-meanCovMerged = mitoStatsFlat.merge(designDF, how="left", on="Sample")
+    outNormDesignDF.loc[:,["TRACK_ID", "DATA_Type", "INDIVIDUAL_ID", "SAMPLE_ID", "Condition","Strand"]]\
+                             .to_csv(outDirNorm / "norm-attributes.txt", sep="\t", index=None)
+    return
 
-# write out to workbook
-outDirWorkbooks = Path(workingDir / "workbooks")
-if not outDirWorkbooks.is_dir():
-    print("make directory")
-    outDirWorkbooks.mkdir()
-import datetime
-outName = sys.argv[2]
-now = datetime.datetime.now()
-writer = pd.ExcelWriter(outDirWorkbooks / ('DAMP-Stats-' + outName + str(now) + '.xlsx'), engine='xlsxwriter')
-insertStatsAll.to_excel(writer, "Insert Stats",index=False)
+def makeRequest(idSeries):
+    
+        server = "https://rest.ensembl.org"
+        ext = "/variation/homo_sapiens?genotypes=1&phenotypes=1"
+        headers={ "Content-Type" : "application/json", "Accept" : "application/json"}
+        
+        idList = idSeries.unique().tolist()
+        idDict = {"ids": idList}
+        r = requests.post(server+ext, headers=headers, data=json.dumps(idDict))
 
-insertHistPivot = insertHistAll.pivot_table(index=["Intervals"], columns=["Sample","Insert Origin"], values=["% Density"])
-insertHistPivot.to_excel(writer, "Insert Distributions")
+        if not r.ok:
+          r.raise_for_status()
+          sys.exit()
 
-insertHistPivot = insertHistAll.pivot_table(index=["Intervals"], columns=["Sample","Insert Origin"], values=["Smoothed % Density"])
-insertHistPivot.to_excel(writer, "Smoothed Insert Distributions")
+        decoded = r.json()
+        return decoded
 
-meanCovMerged.to_excel(writer, "Coverage Stats",index=False)
-
-#binned mito coverage
-binnedMeans.to_excel(writer, "100bp Binned Coverage")
-
-#pivot mito coverage
-covPivot = humanMtNorm.pivot_table(index=["Chromosome", "Start", "End", "Name", "Score", "Strand", "Offset"],
-                 columns="Sample", values=["Depth_Mito", "Depth_NUMT", "Norm Depth"]).reset_index()
-covPivot.to_excel(writer, "Mito Coverage")
-
-#pivot numt
-covNumtPivot = covByNumt.pivot_table(index=["Chromosome", "Start", "End", "Name", "Score", "Strand", "Length"],
-                 columns="Sample", values=["Depth","Length", "Mean","Mean All NUMT","Normalized Mean"]).reset_index()
-covNumtPivot.to_excel(writer, "Numt Mean Coverage")
-
-covShufPivot = covByShuf.pivot_table(index=["Chromosome", "Start", "End", "Name", "Score", "Strand", "Length"],
-                 columns="Sample", values=["Depth","Length", "Mean","Mean All NUMT","Normalized Mean"]).reset_index()
-covShufPivot.to_excel(writer, "Shuf Mean Coverage")
-
-covDiyamaPivot = covByDayama.pivot_table(index=["Chromosome", "Start", "End", "Name", "Score", "Strand", "Length"],
-                 columns="Sample", values=["Depth","Length", "Mean","Mean All NUMT","Normalized Mean"]).reset_index()
-covDiyamaPivot.to_excel(writer, "Dayama Mean Coverage")
-
-writer.save()
+def getAnnotationsAll(idSeries):
+    import requests, sys
  
-# generate bedgraphs and bigwigs
-outDirRaw = Path(coverageDir / "raw-coverages")
-outDirNorm = Path(coverageDir / "norm-coverages")
-if not outDirRaw.is_dir():
-    outDirRaw.mkdir()
-if not outDirNorm.is_dir():
-    outDirNorm.mkdir()
-    "Human-Numt-Coverage-Raw.tsv"
-
-for name, group in humanMtNorm.groupby("Sample"):
-    outGroup = group.copy().reset_index(drop=True)
-    outGroup['Start'] = outGroup['Offset']
-    outGroup['End']  = outGroup['Start'] + 1
-    outGroupNorm = outGroup.copy()
-    outGroup['Count'] = outGroup['Depth_Mito']
-    outGroupNorm['Count'] = outGroup['Norm Depth']
-
-    outNameRaw = name + "-raw"
-    outNameNorm = name + "-norm"
-
-#     filenameList.append(outName)
-
-    outGroup = outGroup.loc[:, ["Chromosome", "Start", "End", "Count"]]
-    outGroup.to_csv(outDirRaw / (outNameRaw + ".bg"), sep="\t", index=False, header=False)
     
-    outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Count"]]
-    outGroupNorm.to_csv(outDirNorm / (outNameNorm + ".bg"), sep="\t", index=False, header=False)
+#     r = requests.post(server+ext, headers=headers, data='{ "ids" : ["rs199476118", "rs879100564", "rs199476118" ] }')
+    outList = []
+    binSize=100
+    idSeries = pd.Series(idSeries.unique())
+    #pdb.set_trace()
+    for rangeBin in range((len(idSeries) // binSize) + 1):
+        decoded = makeRequest(idSeries[rangeBin*binSize:rangeBin*binSize + binSize])
+        tempDF = processVEPReturn(decoded)
+        outList.append(tempDF)
+        
+    decoded = makeRequest(idSeries[(rangeBin+1)*binSize:])
+    tempDF = processVEPReturn(decoded)
+    outList.append(tempDF)
+    return pd.concat(outList,axis=0)
 
-    # pyranges to_bigwig not working
-    # tempPyRanges = pr.PyRanges(outGroup)
-    # #pdb.set_trace()
-    # outRawString = str(outDirRaw / (outNameRaw + ".bw"))
-    # tempPyRanges.to_bigwig(path = outRawString)
+
+#     print(repr(decoded))
+    return processVEPReturn(decoded)
+
+def processVEPReturn(inJson):
+    outList = []
+    for rsid, entry in inJson.items():
+#         print("###########" + rsid + "###########")
+#         pprint(entry)
+        entryDict = {}
+        entryDict['ID'] = rsid
+        if("clinical_significance" in entry.keys()):
+            entryDict['clinical_significance'] = ":".join(entry['clinical_significance'])
+        else:
+            entryDict['clinical_significance'] = None
+        
+        if(len(entry['phenotypes']) > 0):
+            phenotypeList = []
+            for phenotypeEntry in entry['phenotypes']:
+#                 pdb.set_trace()            
+                phenotypeList.append(" ".join(["-".join((key,str(val))) for key,val in phenotypeEntry.items()]))
+            entryDict['phenotypes'] = ":".join(phenotypeList)
+        else:
+            entryDict['phenotypes'] = None
     
-    # tempPyRangesNorm = pr.PyRanges(outGroupNorm)
-    # outNormString = str(outDirNorm / (outNameNorm + ".bw"))
-    # tempPyRangesNorm.to_bigwig(path = outNormString)
+        entryDict['most_severe_consequence'] = entry['most_severe_consequence']
+        outList.append(entryDict)
+    return pd.DataFrame(outList)
+
+
+def parseVariantTSV(fileName):
+    outList = []
+    with gzip.open(fileName, 'rt') as inFile:
+        for line in inFile:
+            parsedLine = line.strip().split("\t")
+            contig = parsedLine[0]
+            locus = parsedLine[1]
+            variantID = parsedLine[2]
+            reference = parsedLine[3]
+            alternate = parsedLine[4]
+            varType = parsedLine[5]
+            
+            formatString = parsedLine[6]
+            attributeNames = formatString.split(":")
+            numAttributes = len(attributeNames)
+            start = 7
+            end = start + numAttributes
+            
+            numSamples = len(parsedLine[7:]) // numAttributes
+            for _ in range(numSamples):
+                sampleLine = parsedLine[start:end]
+#                 pdb.set_trace()
+                start += numAttributes
+                end += numAttributes
+                
+                entryDict = {"Chromosome": contig, "Start": locus, 
+                             "ID": variantID,
+                             "ref": reference, "alt": alternate, 
+                                "Variant Type": varType}
+                tempTuple = zip(attributeNames, sampleLine)
+                for attr, val in tempTuple:
+                    if(attr == "MinorFreq"):
+                        refFreq, altFreq = val.split(",")
+#                         entryDict["Ref AF"] = refFreq
+                        entryDict["MinorFreq"] = altFreq
+                    else:
+                        entryDict[attr] = val
+                outList.append(entryDict)
+    outDF = pd.DataFrame(outList)
+    
+    outDF.to_csv("/tmp/temp.csv", index=False)
+    outDF = pd.read_csv("/tmp/temp.csv",dtype={'MinorFreq': float})
+    outDF = outDF.set_index(["Chromosome", "Start", "ref", "alt"])
+    return outDF    
+
+
+
+if __name__ == "__main__":
+
+    import argparse
+
+    parser = argparse.ArgumentParser(description='generate analysis workbooks from raw files')
+
+    parser.add_argument('-p', '--parameters')
+    parser.add_argument('-m', '--metadata')
+    parser.add_argument('-i', '--inputdir')
+    parser.add_argument('-o', '--outputdir')
+    parser.add_argument('-n', '--nameprefix', default="DAMPs")
+    parser.add_argument('-t', '--timestamp', action='store_true')
+    parser.add_argument('-r', '--regenfiles', action='store_true')
+
+    args = parser.parse_args()
+    #print(args)
+
+    with open(args.parameters) as paramFile:
+        params = json.load(paramFile)
+
+    #with open(args.metadata) as metaFile:
+    #    metadata = pd.read_csv(metaFile, sep="\t")
+
+    designDF = pd.read_csv(args.metadata, sep="\t")
+    
+    inputDir = Path(args.inputdir)
+    outputDir = Path(args.outputdir)
+
+    # go through groups and read in all requested files
+    coverageDict = {}
+    coverageStatsDict = {}
+    insertHistDict = {}
+    insertStatsDict = {}
+    
+    for bedParams in params['groups']:
+
+        tempName = bedParams['name']
+        
+        if(bedParams['positions'] == "full"):
+            # don't need to aggregate
+            tempCov , tempCovStats = getRawCoverageDF(tempName, inputDir, aggregate=False)
+            coverageDict[tempName] = tempCov
+            coverageStatsDict[tempName] = tempCovStats
+            
+        elif(bedParams['positions'] == "aggregate"):
+            # aggregate by interval
+            tempCov , tempCovStats = getRawCoverageDF(tempName, inputDir, aggregate=True)
+            coverageDict[tempName] = tempCov
+            coverageStatsDict[tempName] = tempCovStats
+
+            
+        # if inserts are requested, add to dict
+        if(bedParams['inserts'] == "include"):
+            # add to dict
+            tempInsertHist, tempInsertStats = getRawInsertsDF(tempName, inputDir)
+            insertHistDict[tempName] = tempInsertHist
+            insertStatsDict[tempName] = tempInsertStats
+            
+        elif(('inserts' not in bedParams.keys()) or (bedParams['inserts'] == "exclude")):
+            pass
+
+    # after the raw coverages and inserts are read in, find the mitochondrial value and numt value, and normalize them.
+        # will normalize the 1bp resolution set and the mean of the stats set
+    mitoName = params['normalization']['mitochondrial-name']
+    numtName = params['normalization']['numt-name']
+    
+    # start with normalizing stats df, for this I'm only doing mitochondrial and NUMT
+    normMitoStatsDF = coverageStatsDict[mitoName]
+
+    # use the mean NUMT depth to normalize coverage. Will repeat this for the 1bp or interval-level coverages as well
+    normNumtDepth = coverageStatsDict[numtName].loc[:, ["Sample", "Mean"]]
+    normNumtDepth = normNumtDepth.rename(columns={"Mean": "NUMT Mean"})
+
+    normMitoStatsDF = normMitoStatsDF.merge(normNumtDepth, on="Sample")
+    normMitoStatsDF['Norm Mean'] = normMitoStatsDF['Mean'] / normMitoStatsDF['NUMT Mean'] 
+    normMitoStatsDF = normMitoStatsDF.drop(columns="NUMT Mean")
+
+    # replace the mitochondrial df with the updated one
+    coverageStatsDict.pop(mitoName)
+    coverageStatsDict[mitoName] = normMitoStatsDF
+    
+    # for mito, NUMT, Shuffled, etc. normalize by the mean NUMT for that sample.
+    for dfName, covDF in coverageDict.items():
+        
+        covDF = covDF.merge(normNumtDepth, how="left", on="Sample")
+        if("Depth" in covDF.columns):
+            covDF['Norm Depth'] = covDF['Depth'] / covDF['NUMT Mean']
+        elif("Mean Depth" in covDF.columns):
+            covDF['Norm Depth'] = covDF['Mean Depth'] / covDF['NUMT Mean']
+
+        # once I'm confident in results could drop the column
+        #covDF = covDF.drop(columns="NUMT Mean")
+        coverageDict[dfName] = covDF
+
+    #### for mitochondria, add a 100 bp binned sheet ######
+    binnedMito = coverageDict[mitoName].loc[:,["Sample", "Offset","Depth", "Norm Depth"]]
+    binnedMito['Bin'] = (binnedMito['Offset'] // 100 ) + 1
+    binnedMito = pd.pivot_table(binnedMito, values=["Depth", "Norm Depth"], index=["Bin"], columns="Sample", aggfunc="mean")
+
+    # process inserts
+    # insert stats should be ready
+
+    # insert histograms need to be pivoted
+    pivotedInsertHistDict = {}
+    for insertName, insertHist in insertHistDict.items():
+        tempPivot = insertHist.pivot_table(index=["Intervals"], columns=["Sample"],
+                                                  values=["Smoothed % Density"])
+        pivotedInsertHistDict[insertName] = tempPivot
+    
+    # start writing excel Workbook
+    if args.timestamp == True:
+        now = datetime.datetime.now()
+        outExcelName = args.nameprefix + "-" +  str(now) + ".xlsx"
+        outExcelNameHeteroplasmy = args.nameprefix + "-Heteroplasmy-" +  str(now) + ".xlsx"
+    else:
+        outExcelName = args.nameprefix + ".xlsx"
+        outExcelNameHeteroplasmy = args.nameprefix + "-Heteroplasmy.xlsx"
+
+    outDirWorkbooks = Path(outputDir  / "workbooks")
+    if not outDirWorkbooks.is_dir():
+        outDirWorkbooks.mkdir()
+
+    writer = pd.ExcelWriter(outDirWorkbooks / outExcelName)
+
+    for tempName, tempDF in coverageStatsDict.items():
+        tempDF = tempDF.merge(designDF, how="left", on="Sample")
+        tempDF.to_excel(writer, tempName + " Coverage Stats",index=None)
+
+    for tempName, tempDF in coverageDict.items():
+        tempDF.to_excel(writer, tempName + " Coverage",index=None)
+
+    binnedMito.to_excel(writer, "100bp Bin Mito")
+    
+    for tempName, tempDF in insertStatsDict.items():
+        tempDF = tempDF.merge(designDF, how="left", on="Sample")
+        tempDF.to_excel(writer, tempName + " Insert Stats",index=None)
+    for tempName, tempDF in pivotedInsertHistDict.items():
+        tempDF.to_excel(writer, tempName + " Insert Histograms")
+
+    writer.save()
+
+    # write bigwig files
+    
+    outDirCoverage = Path(outputDir  / "coverage")
+    if not outDirCoverage.is_dir():
+        outDirCoverage.mkdir()
+    createBigWigs(outDirCoverage, designDF, coverageDict[mitoName])
+
+    ### process heteroplasmy tsv file
+
+    # if allowing skpping regen and the file already exists then read it in
+    outDirVariants = Path(outputDir / "variants")
+    if not outDirVariants.is_dir():
+        outDirVariants.mkdir()
+    outVarIntermediatePath = outDirVariants / "heteroplasmy.intermediate.tsv"
+    if ((not outVarIntermediatePath.is_file()) or (args.regenfiles)):
+        inVarTSV = inputDir / "out.heteroplasmy.tsv.gz"
+        raw_variants = parseVariantTSV(inVarTSV)
+        raw_variants['Genotype'] = raw_variants['Genotype'].replace({"0/0": "Ref",
+                                "0/1": "Heteroplasmy",
+                                "1/0": "Heteroplasmy", 
+                                "1/1": "Homoplasmy",
+                                "./.": "Missing"})
+        annotationDF = getAnnotationsAll(raw_variants.query('(ID != "NORSID") and (Genotype != "Ref")')['ID'])
+        merged_variants = raw_variants.reset_index().merge(designDF, how="left", on="Sample")
+        merged_variants = merged_variants.merge(annotationDF, how="left", on="ID")
+        merged_variants.to_csv(outVarIntermediatePath, sep="\t")
+    else:
+        merged_variants = pd.read_csv(outVarIntermediatePath, sep="\t")
+    # get variant counts
+    variants_only = merged_variants.query('Genotype != "Ref"')
+    varCounts = pd.pivot_table(raw_variants, index="Sample", columns="Genotype", values="ADVar", aggfunc="count")
+    varCounts = varCounts.merge(designDF, how="left", left_index=True, right_on="Sample")
+    # write to heteroplasmy workbook
+
+    # defined Excel workbook name earlier
+    writer = pd.ExcelWriter(outDirWorkbooks / outExcelNameHeteroplasmy, engine='xlsxwriter')
+    varCounts.to_excel(writer, "Summary Counts", index=False)
+    for name,group in variants_only.groupby("Sample"):
+        print(name)
+        group.to_excel(writer, name, index=False)
+    writer.save()
