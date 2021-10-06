@@ -1,0 +1,16 @@
+version: 1.2
+workflows:
+   - name: <String>
+     subclass: <CWL | WDL | NFL | GALAXY>
+     publish: <Boolean>
+     primaryDescriptorPath: <String>
+     testParameterFiles: <String Array>
+     authors:
+       - name: <String>
+         orcid: <String>
+         email: <String>
+         role: <String>
+         affiliation: <String>
+     filters:
+       branches: <String Array>
+       tags: <String Array>

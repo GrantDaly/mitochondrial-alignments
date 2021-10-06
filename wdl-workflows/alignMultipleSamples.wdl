@@ -96,6 +96,8 @@ task AlignAndSort {
    docker: "gdaly9000/mitochondrial"
    cpu: 32
    memory: "64 GB"
+   disks: "local-disk 200 SSD"
+   preemptible: 1
  }
   
   command {
@@ -125,6 +127,8 @@ task MergeBams {
    docker: "gdaly9000/mitochondrial"
    cpu: 4
    memory: "8 GB"
+   disks: "local-disk 200 SSD"
+   preemptible: 1
  }
   
   command {
@@ -149,6 +153,8 @@ task Artifacts {
       docker: "docker.io/broadinstitute/gatk:latest"
       cpu: 4
       memory: "8 GB"
+      disks: "local-disk 200 SSD"
+      preemptible: 1
    }
    command {
      set -e
