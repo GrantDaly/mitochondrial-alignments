@@ -1,15 +1,7 @@
 version: 1.2
 workflows: 
-  - 
-    authors: 
-      - 
-        affiliation: "University of South Alabama College of Medicine"
-        email: daly@southalabama.edu
-        name: "Grant Daly"
-        orcid: 0000-0002-4109-0546
-        role: "Graduate Student"
-    name: alignSamples
-    primaryDescriptorPath: wdl-workflows/alignMultipleSamples.wdl
-    publish: true
+  - name: alignSamples
+    primaryDescriptorPath: /wdl-workflows/alignMultipleSamples.wdl
+    testParameterFiles: 
+      - /wdl-workflows/alignMultipleSamples.inputs.json
     subclass: WDL
-    testParameterFiles: wdl-workflows/alignMultipleSamples.inputs.json
