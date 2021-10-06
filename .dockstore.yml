@@ -11,5 +11,6 @@ workflows:
          email: "daly@southalabama.edu"
          role: "Graduate Student"
          affiliation: "University of South Alabama College of Medicine"
-    filters:
-      - master
+     filters:  # Only develop or master branches and localAligner/** tags
+         branches:
+             - master
