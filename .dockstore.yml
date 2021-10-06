@@ -11,7 +11,3 @@ workflows:
          email: "daly@southalabama.edu"
          role: "Graduate Student"
          affiliation: "University of South Alabama College of Medicine"
-     latestTagAsDefault: True
-     filters:
-       branches:
-         - "master"
