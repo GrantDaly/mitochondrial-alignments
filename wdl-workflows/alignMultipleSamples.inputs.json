@@ -13,10 +13,10 @@
     "sample_name": "S9_0",
     "library_name": "libS9_0",
     "flowcells": [
-    {"filenames": ["gs://south-al-genomics/sampleData/R1.fastq.gz","gs://south-al-genomics/sampleData/R2.fastq.gz"],
+    {"filenames": ["gs://public-data-1/sample-data/R1.fastq.gz","gs://public-data-1/sample-data/R2.fastq.gz"],
   "flowcell_name": "HY2HGBBXX",
   "flowcell_lane": "2"},
-  {"filenames": ["gs://south-al-genomics/sampleData/R1.fastq.gz","gs://south-al-genomics/sampleData/R2.fastq.gz"],
+  {"filenames": ["gs://public-data-1/sample-data/R1.fastq.gz","gs://public-data-1/sample-data/R2.fastq.gz"],
   "flowcell_name": "HY2HGBBXX",
   "flowcell_lane": "3"}
     ]
@@ -25,10 +25,10 @@
     "sample_name": "TestSamp2",
     "library_name": "libTestSamp2",
     "flowcells": [
-    {"filenames": ["gs://south-al-genomics/sampleData/R1.fastq.gz","gs://south-al-genomics/sampleData/R2.fastq.gz"],
+    {"filenames": ["gs://public-data-1/sample-data/Sample_2_R1.fq.gz","gs://public-data-1/sample-data/Sample_2_R2.fq.gz"],
   "flowcell_name": "TestFC2",
   "flowcell_lane": "2"},
-  {"filenames": ["gs://south-al-genomics/sampleData/R1.fastq.gz","gs://south-al-genomics/sampleData/R2.fastq.gz"],
+  {"filenames": ["gs://public-data-1/sample-data/Sample_2_R1.fq.gz","gs://public-data-1/sample-data/Sample_2_R2.fq.gz"],
   "flowcell_name": "TestFC2",
   "flowcell_lane": "3"}
     ]
