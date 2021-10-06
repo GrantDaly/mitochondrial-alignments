@@ -1,16 +1,17 @@
 version: 1.2
 workflows:
-   - name: <String>
-     subclass: <CWL | WDL | NFL | GALAXY>
-     publish: <Boolean>
-     primaryDescriptorPath: <String>
-     testParameterFiles: <String Array>
+   - name: Alignments
+     subclass: WDL
+     publish: True
+     primaryDescriptorPath: wdl-workflows/alignMultipleSamples.wdl
+     testParameterFiles: wdl-workflows/alignMultipleSamples.inputs.json
      authors:
-       - name: <String>
-         orcid: <String>
-         email: <String>
-         role: <String>
-         affiliation: <String>
+       - name: "Grant Daly"
+         orcid: "0000-0002-4109-0546"
+         email: "daly@southalabama.edu"
+         role: "Graduate Student"
+         affiliation: "University of South Alabama College of Medicine"
+     latestTagAsDefault: True
      filters:
-       branches: <String Array>
-       tags: <String Array>
+       branches:
+         - "master"
