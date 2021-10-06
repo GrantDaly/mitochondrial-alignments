@@ -6,6 +6,12 @@ workflows:
      primaryDescriptorPath: /wdl-workflows/alignMultipleSamples.wdl
      testParameterFiles:
          - /wdl-workflows/alignMultipleSamples.inputs.json
+     authors:
+         - name: "Grant Daly"
+           orcid: "0000-0002-4109-0546"
+           email: "daly@southalabama.edu"
+           role: "Graduate Student"
+           affiliation: "University of South Alabama College of Medicine"
      filters:  # All tags, no branches
          tags:
              - /.*/
