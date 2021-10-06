@@ -1,16 +1,13 @@
 version: 1.2
-workflows: 
-  - name: alignSamples
-    primaryDescriptorPath: /wdl-workflows/alignMultipleSamples.wdl
-    testParameterFiles: 
-      - /wdl-workflows/alignMultipleSamples.inputs.json
-    subclass: WDL
-    authors:
-       - name: "Grant Daly"
-         orcid: "0000-0002-4109-0546"
-         email: "daly@southalabama.edu"
-         role: "Graduate Student"
-         affiliation: "University of South Alabama College of Medicine"
-     filters:  # Only develop or master branches and localAligner/** tags
+workflows:
+   - name: alignSamples
+     subclass: WDL
+     publish: True
+     primaryDescriptorPath: /wdl-workflows/alignMultipleSamples.wdl
+     testParameterFiles:
+         - /wdl-workflows/alignMultipleSamples.inputs.json
+     filters:  # All tags, no branches
+         tags:
+             - /.*/
          branches:
              - master
