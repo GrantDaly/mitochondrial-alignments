@@ -32,6 +32,7 @@ workflow alignSamples {
     Array[File] out_bam = merge.out_bam
     Array[File] out_bam_index = merge.out_bam_index
     Array[Array[File]] out_artifacts = Artifacts.out_artifacts
+    Array[File] out_bam_stats = merge.bam_stats
     }
     
     scatter (sample in samples) {
@@ -65,6 +66,7 @@ workflow alignSamples {
           sample_name = sample.sample_name,
           reference = references.ref_fasta
         }
+        
     }
     #Array[File] merged_bams = merge.out_bam
     #Array[File] merged_bams_index = merge.out_bam_index
@@ -122,6 +124,7 @@ task MergeBams {
    output{
    File out_bam = "~{sample}.bam"
    File out_bam_index = "~{sample}.bam.bai"
+   File bam_stats = "~{sample}.stats.txt"
    }
    runtime {
    docker: "gdaly9000/mitochondrial"
@@ -135,6 +138,7 @@ task MergeBams {
     set -e
   samtools merge --threads 16 -O BAM "~{sample}.bam" ~{sep=" " inBams}
   samtools index "~{sample}.bam"
+  samtools flagstat "~{sample}.bam" > "~{sample}.stats.txt"
   
   }
 }
