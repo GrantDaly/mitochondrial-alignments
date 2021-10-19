@@ -51,7 +51,7 @@ def getRawCoverageDF(bedPrefix, inputDir, aggregate=False):
         coverageStatList.append(tempCovStatsDF)
 
     outCovDF = pd.concat(coverageList, axis=0)
-    outCovStatsDF = pd.concat(coverageStatList, axis=0)
+    outCovStatsDF = pd.concat(coverageStatList, axis=0).sort_values("Sample")
 
     return outCovDF, outCovStatsDF
 
@@ -74,7 +74,7 @@ def getRawInsertsDF(bedPrefix, inputDir):
     for insertStatFile in insertStatsGlob:
         tempStats = pd.read_csv(insertStatFile, sep="\t")
         insertStatsList.append(tempStats)
-    insertStatDF = pd.concat(insertStatsList, axis=0)
+    insertStatDF = pd.concat(insertStatsList, axis=0).sort_values("Sample")
 
     return insertHistDF, insertStatDF
 
@@ -228,7 +228,6 @@ def processVEPReturn(inJson):
         if(len(entry['phenotypes']) > 0):
             phenotypeList = []
             for phenotypeEntry in entry['phenotypes']:
-#                 pdb.set_trace()            
                 phenotypeList.append(" ".join(["-".join((key,str(val))) for key,val in phenotypeEntry.items()]))
             entryDict['phenotypes'] = ":".join(phenotypeList)
         else:
@@ -260,7 +259,6 @@ def parseVariantTSV(fileName):
             numSamples = len(parsedLine[7:]) // numAttributes
             for _ in range(numSamples):
                 sampleLine = parsedLine[start:end]
-#                 pdb.set_trace()
                 start += numAttributes
                 end += numAttributes
                 
@@ -310,12 +308,14 @@ if __name__ == "__main__":
     #    metadata = pd.read_csv(metaFile, sep="\t")
 
     designDF = pd.read_csv(args.metadata, sep="\t")
-    
     inputDir = Path(args.inputdir)
     outputDir = Path(args.outputdir)
+    if not outputDir.is_dir():
+        outputDir.mkdir()
 
     # go through groups and read in all requested files
     coverageDict = {}
+    pivotCoverageDict = {}
     coverageStatsDict = {}
     insertHistDict = {}
     insertStatsDict = {}
@@ -361,24 +361,28 @@ if __name__ == "__main__":
 
     normMitoStatsDF = normMitoStatsDF.merge(normNumtDepth, on="Sample")
     normMitoStatsDF['Norm Mean'] = normMitoStatsDF['Mean'] / normMitoStatsDF['NUMT Mean'] 
-    normMitoStatsDF = normMitoStatsDF.drop(columns="NUMT Mean")
+
 
     # replace the mitochondrial df with the updated one
     coverageStatsDict.pop(mitoName)
     coverageStatsDict[mitoName] = normMitoStatsDF
     
     # for mito, NUMT, Shuffled, etc. normalize by the mean NUMT for that sample.
-    for dfName, covDF in coverageDict.items():
+    for dfName, rawCovDF in coverageDict.items():
         
-        covDF = covDF.merge(normNumtDepth, how="left", on="Sample")
-        if("Depth" in covDF.columns):
-            covDF['Norm Depth'] = covDF['Depth'] / covDF['NUMT Mean']
-        elif("Mean Depth" in covDF.columns):
-            covDF['Norm Depth'] = covDF['Mean Depth'] / covDF['NUMT Mean']
+        rawCovDF = rawCovDF.merge(normNumtDepth, how="left", on="Sample")
+        if("Depth" in rawCovDF.columns):
+            rawCovDF['Norm Depth'] = rawCovDF['Depth'] / rawCovDF['NUMT Mean']
+            collapsedCovDF = rawCovDF.pivot(index=["Chromosome", "Start", "End","Name", "Offset"],columns="Sample",values=['Forward_Depth', 'Reverse_Depth', 'Depth', 'Norm Depth'])
+        elif("Mean Depth" in rawCovDF.columns):
+            rawCovDF['Norm Depth'] = rawCovDF['Mean Depth'] / rawCovDF['NUMT Mean']
+            collapsedCovDF = rawCovDF.pivot(index=["Chromosome", "Start", "End","Name"],columns="Sample",values=['Mean Depth', 'Norm Depth'])
 
         # once I'm confident in results could drop the column
         #covDF = covDF.drop(columns="NUMT Mean")
-        coverageDict[dfName] = covDF
+        coverageDict[dfName] = rawCovDF
+        pivotCoverageDict[dfName] = collapsedCovDF
+
 
     #### for mitochondria, add a 100 bp binned sheet ######
     binnedMito = coverageDict[mitoName].loc[:,["Sample", "Offset","Depth", "Norm Depth"]]
@@ -389,8 +393,13 @@ if __name__ == "__main__":
     # insert stats should be ready
 
     # insert histograms need to be pivoted
+    
+    outDirInserts = Path(outputDir  / "inserts")
+    if not outDirInserts.is_dir():
+        outDirInserts.mkdir()
     pivotedInsertHistDict = {}
     for insertName, insertHist in insertHistDict.items():
+        insertHist.to_csv(outDirInserts / (insertName + ".inserts.csv"),sep="\t",index=None)
         tempPivot = insertHist.pivot_table(index=["Intervals"], columns=["Sample"],
                                                   values=["Smoothed % Density"])
         pivotedInsertHistDict[insertName] = tempPivot
@@ -409,13 +418,14 @@ if __name__ == "__main__":
         outDirWorkbooks.mkdir()
 
     writer = pd.ExcelWriter(outDirWorkbooks / outExcelName)
+    designDF.sort_values("Sample").to_excel(writer, "Design", index=None)
 
     for tempName, tempDF in coverageStatsDict.items():
         tempDF = tempDF.merge(designDF, how="left", on="Sample")
         tempDF.to_excel(writer, tempName + " Coverage Stats",index=None)
 
-    for tempName, tempDF in coverageDict.items():
-        tempDF.to_excel(writer, tempName + " Coverage",index=None)
+    for tempName, tempDF in pivotCoverageDict.items():
+        tempDF.to_excel(writer, tempName + " Coverage")
 
     binnedMito.to_excel(writer, "100bp Bin Mito")
     
@@ -432,17 +442,23 @@ if __name__ == "__main__":
     outDirCoverage = Path(outputDir  / "coverage")
     if not outDirCoverage.is_dir():
         outDirCoverage.mkdir()
+    # output raw coverage tsv
+    for tempName, tempDF in coverageDict.items():
+        tempDF.to_csv(outDirCoverage / (tempName + ".coverage.tsv"),sep="\t",index=None)
     createBigWigs(outDirCoverage, designDF, coverageDict[mitoName])
 
     ### process heteroplasmy tsv file
-
+    # if there aren't heteroplasmy files, exit
+    inVarTSV = inputDir / "out.heteroplasmy.tsv.gz"
+    if(not inVarTSV.is_file()):
+        exit()
     # if allowing skpping regen and the file already exists then read it in
     outDirVariants = Path(outputDir / "variants")
     if not outDirVariants.is_dir():
         outDirVariants.mkdir()
     outVarIntermediatePath = outDirVariants / "heteroplasmy.intermediate.tsv"
     if ((not outVarIntermediatePath.is_file()) or (args.regenfiles)):
-        inVarTSV = inputDir / "out.heteroplasmy.tsv.gz"
+
         raw_variants = parseVariantTSV(inVarTSV)
         raw_variants['Genotype'] = raw_variants['Genotype'].replace({"0/0": "Ref",
                                 "0/1": "Heteroplasmy",

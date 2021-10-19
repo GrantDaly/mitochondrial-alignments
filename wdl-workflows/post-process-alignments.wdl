@@ -23,12 +23,6 @@ workflow coverageAndInsert {
     Array[Array[Array[File]]] output_files = process_beds.output_tsvs
     #Array[Array[File]] output_tsvs = combine.output_tsvs
     
-    File raw_vcf = reduceVCF.out_vcf
-    File raw_vcf_index = reduceVCF.out_vcf_index
-    
-    File out_heteroplasmy = reduceVCF.out_heteroplasmy
-    File out_heteroplasmy_index = reduceVCF.out_heteroplasmy_index
-    File out_heteroplasmy_tsv = reduceVCF.out_heteroplasmy_tsv
 
     }
 
@@ -46,25 +40,6 @@ workflow coverageAndInsert {
     }
     }
     
-     # call variants on individual samples
-     scatter (sample in samples) {
-     call RawVCF as raw {
-       input :
-               sample_name = sample.name,
-               sample_bam = sample.alignment,
-               sample_index  = sample.index,
-               fasta = fasta,
-               fasta_index = fasta_index
-    }
-    }
-    # merge and call variants
-    call ProcessRawVCFs as reduceVCF {
-       input:
-            fasta = fasta,
-            fasta_index = fasta_index,
-            input_vcfs = raw.vcf,
-            input_indexes = raw.index
-    }
     
     }
 
@@ -87,7 +62,8 @@ task Postprocess {
    runtime {
    docker: "gdaly9000/mitochondrial"
    cpu: 2
-   memory: "8 GB"
+   memory: "16 GB"
+   disks: "local-disk 200 SSD"
  }
   
   command {
@@ -113,7 +89,8 @@ task RawVCF {
    runtime {
    docker: "gdaly9000/mitochondrial"
    cpu: 4
-   memory: "16 GB"
+   memory: "32 GB"
+   disks: "local-disk 200 SSD"
  }
  command {
    bcftools --version
