@@ -1,14 +1,6 @@
 version 1.0
 
-struct References {
-    File ref_fasta
-    File ref_fai
-    File ref_amb
-    File ref_ann
-    File ref_bwt
-    File ref_pac
-    File ref_sa
-}
+
 
 struct Flowcell {
   String flowcell_name
@@ -22,12 +14,23 @@ struct Sample {
    Array[Flowcell] flowcells
 }
 
-workflow alignSamples {
+workflow alignSample {
 
    input {
-    References references
-    Sample sample
+
+    File ref_fasta
+    File ref_fai
+    File ref_amb
+    File ref_ann
+    File ref_bwt
+    File ref_pac
+    File ref_sa
+    
+   String sample_name
+   String library_name
+   Array[Flowcell] flowcells
     }
+
     output {
     File out_bam = merge.out_bam
     File out_bam_index = merge.out_bam_index
@@ -35,18 +38,18 @@ workflow alignSamples {
     File out_bam_stats = merge.bam_stats
     }
     
-    scatter (flowcell in sample.flowcells) {
+    scatter (flowcell in flowcells) {
         call AlignAndSort as align{
            input:
-               ref_fasta = references.ref_fasta,
-               ref_fai  = references.ref_fai,
-               ref_amb = references.ref_amb,
-               ref_ann = references.ref_ann,
-               ref_bwt = references.ref_bwt,
-               ref_pac = references.ref_pac,
-               ref_sa = references.ref_sa,
-           sample_name = sample.sample_name,
-           library = sample.library_name,
+               ref_fasta = ref_fasta,
+               ref_fai  = ref_fai,
+               ref_amb = ref_amb,
+               ref_ann = ref_ann,
+               ref_bwt = ref_bwt,
+               ref_pac = ref_pac,
+               ref_sa = ref_sa,
+           sample_name = sample_name,
+           library = library_name,
            flowcell = flowcell.flowcell_name,
            lane = flowcell.flowcell_lane,
            fastq_1 = flowcell.filenames[0],
@@ -55,15 +58,15 @@ workflow alignSamples {
     }
             call MergeBams as merge {
               input: 
-                 sample = sample.sample_name,
+                 sample = sample_name,
                  inBams = align.sorted_bam
         }
             call Artifacts {
        input:
           in_bam = merge.out_bam,
           in_bam_index = merge.out_bam_index,
-          sample_name = sample.sample_name,
-          reference = references.ref_fasta
+          sample_name = sample_name,
+          reference = ref_fasta
         }
 
 }
