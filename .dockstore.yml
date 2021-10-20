@@ -1,11 +1,11 @@
 version: 1.2
 workflows:
-   - name: alignSamples
+   - name: AlignSample
      subclass: WDL
      publish: True
-     primaryDescriptorPath: /wdl-workflows/alignMultipleSamples.wdl
+     primaryDescriptorPath: /wdl-workflows/alignSample.wdl
      testParameterFiles:
-         - /wdl-workflows/alignMultipleSamples.inputs.json
+         - /wdl-workflows/alignSample.inputs.json
      authors:
          - name: "Grant Daly"
            orcid: "0000-0002-4109-0546"
@@ -17,6 +17,7 @@ workflows:
              - /.*/
          branches:
              - master
+             - oneSample
    - name: PostProcess
      subclass: WDL
      publish: True

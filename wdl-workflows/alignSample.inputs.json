@@ -1,0 +1,25 @@
+{
+  "alignSamples.references": {"ref_dict": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.dict",
+      "ref_fasta": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta",
+      "ref_fai": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai",
+      "ref_alt": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.64.alt",
+      "ref_sa": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.64.sa",
+      "ref_amb": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.64.amb",
+      "ref_bwt": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.64.bwt",
+      "ref_ann": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.64.ann",
+      "ref_pac": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.64.pac"
+    },
+  "alignSamples.sample": {
+    "sample_name": "S9_0",
+    "library_name": "libS9_0",
+    "flowcells": [
+    {"filenames": ["gs://public-data-1/sample-data/R1.fastq.gz","gs://public-data-1/sample-data/R2.fastq.gz"],
+  "flowcell_name": "HY2HGBBXX",
+  "flowcell_lane": "2"},
+  {"filenames": ["gs://public-data-1/sample-data/R1.fastq.gz","gs://public-data-1/sample-data/R2.fastq.gz"],
+  "flowcell_name": "HY2HGBBXX",
+  "flowcell_lane": "3"}
+    ]
+  }
+}
+
