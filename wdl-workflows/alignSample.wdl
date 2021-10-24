@@ -27,7 +27,7 @@ workflow alignSample {
     File ref_sa
     
    String sample_name
-   String library_name
+   Array[String] library_names
    Array[String] flowcell_names
    Array[String] flowcell_lanes
    Array[File] fastq_ones
@@ -53,7 +53,7 @@ workflow alignSample {
                ref_pac = ref_pac,
                ref_sa = ref_sa,
            sample_name = sample_name,
-           library = library_name,
+           library = library_names[i],
            flowcell = flowcell_names[i],
            lane = flowcell_lanes[i],
            fastq_1 = fastq_ones[i],
