@@ -10,13 +10,9 @@
       "alignSample.ref_pac": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.64.pac",
     "alignSample.sample_name": "S9_0",
     "alignSample.library_name": "libS9_0",
-    "alignSample.flowcells": [
-    {"filenames": ["gs://public-data-1/sample-data/R1.fastq.gz","gs://public-data-1/sample-data/R2.fastq.gz"],
-  "flowcell_name": "HY2HGBBXX",
-  "flowcell_lane": "2"},
-  {"filenames": ["gs://public-data-1/sample-data/R1.fastq.gz","gs://public-data-1/sample-data/R2.fastq.gz"],
-  "flowcell_name": "HY2HGBBXX",
-  "flowcell_lane": "3"}
-    ]
+    "alignSample.fastq_ones" : ["gs://public-data-1/sample-data/R1.fastq.gz", "gs://public-data-1/sample-data/R1.fastq.gz"],
+    "alignSample.fastq_twos": ["gs://public-data-1/sample-data/R2.fastq.gz","gs://public-data-1/sample-data/R2.fastq.gz"],
+    "alignSample.flowcell_names": ["HY2HGBBXX","HY2HGBBXX"],
+    "alignSample.flowcell_lane": ["2", "3"]
 }
 

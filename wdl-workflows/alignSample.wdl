@@ -28,7 +28,10 @@ workflow alignSample {
     
    String sample_name
    String library_name
-   Array[Flowcell] flowcells
+   Array[String] flowcell_names
+   Array[String] flowcell_lanes
+   Array[File] fastq_ones
+   Array[File] fastq_twos
     }
 
     output {
@@ -37,8 +40,9 @@ workflow alignSample {
     Array[File] out_artifacts = Artifacts.out_artifacts
     File out_bam_stats = merge.bam_stats
     }
-    
-    scatter (flowcell in flowcells) {
+
+    Array[Int] indices = range(length(fastq_ones))
+    scatter (i in indices) {
         call AlignAndSort as align{
            input:
                ref_fasta = ref_fasta,
@@ -50,10 +54,10 @@ workflow alignSample {
                ref_sa = ref_sa,
            sample_name = sample_name,
            library = library_name,
-           flowcell = flowcell.flowcell_name,
-           lane = flowcell.flowcell_lane,
-           fastq_1 = flowcell.filenames[0],
-           fastq_2 = flowcell.filenames[1]
+           flowcell = flowcell_names[i],
+           lane = flowcell_lanes[i],
+           fastq_1 = fastq_ones[i],
+           fastq_2 = fastq_twos[i]
         }
     }
             call MergeBams as merge {
