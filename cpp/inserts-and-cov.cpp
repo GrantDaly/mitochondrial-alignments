@@ -86,7 +86,7 @@ int readFilter(bam1_t *inRead){
 }
 
 void updateCovArray(int inArray[], long long int start, long long int end){
-  for(int i=start; i <= end; i++){
+  for(long long int i=start; i <= end; i++){
     inArray[i] += 1;
   }
 }
