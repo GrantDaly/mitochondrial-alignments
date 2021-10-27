@@ -14,8 +14,13 @@ struct Bed {
 workflow coverageAndInsert {
 
    input {
-    Array[Alignment] samples
-    Array[Bed] beds
+    Array[File] sample_names
+    Array[File] bam_files
+    Array[File] bam_indexes
+    
+    Array[File] bed_names
+    Array[File] bed_files
+    
     File fasta
     File fasta_index
     }
@@ -25,17 +30,18 @@ workflow coverageAndInsert {
     
 
     }
-
-    scatter (bed in beds) {    
-    scatter (sample in samples) {
+    Array[Int] sample_indices = range(length(sample_names))
+    scatter (sample_index in sample_indices) {
+    Array[Int] bed_indices = range(length(bed_names))    
+    scatter (bed_index in bed_indices) {
 
         call Postprocess as process_beds{
            input:
-               sample_name = sample.name,
-               sample_bam = sample.alignment,
-               sample_index  = sample.index,
-               groupName = bed.name,
-               bed = bed.bedFile
+               sample_name = sample_names[sample_index],
+               sample_bam = bam_files[sample_index],
+               sample_index  = bam_indexes[sample_index],
+               groupName = bed_names[bed_index],
+               bed = bed_files[bed_index]
         }
     }
     }
