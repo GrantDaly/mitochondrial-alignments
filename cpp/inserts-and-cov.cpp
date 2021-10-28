@@ -213,7 +213,8 @@ int main(int argc, char* argv[]){
    while(inBed >> bedLine){
      //std::cout << bedLine << std::endl;
      long int start = bedLine.start;
-     long int end = bedLine.end;
+     // bed is a start 0 based inclusive and end exclusive, so needs to be one less
+     long int end = bedLine.end -1;
      
      auto intervalLength = end - start + 1;
      int FoneRtwo[intervalLength];

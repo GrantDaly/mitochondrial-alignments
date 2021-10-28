@@ -373,7 +373,11 @@ if __name__ == "__main__":
         rawCovDF = rawCovDF.merge(normNumtDepth, how="left", on="Sample")
         if("Depth" in rawCovDF.columns):
             rawCovDF['Norm Depth'] = rawCovDF['Depth'] / rawCovDF['NUMT Mean']
-            collapsedCovDF = rawCovDF.pivot(index=["Chromosome", "Start", "End","Name", "Offset"],columns="Sample",values=['Forward_Depth', 'Reverse_Depth', 'Depth', 'Norm Depth'])
+            # for the 1bp resolution set, I just want to list the start position
+            rawCovDF['Position'] = rawCovDF["Offset"] + 1
+            
+            collapsedCovDF = rawCovDF.pivot(index=["Position"],columns="Sample",values=['Forward_Depth', 'Reverse_Depth', 'Depth', 'Norm Depth'])
+            
         elif("Mean Depth" in rawCovDF.columns):
             rawCovDF['Norm Depth'] = rawCovDF['Mean Depth'] / rawCovDF['NUMT Mean']
             collapsedCovDF = rawCovDF.pivot(index=["Chromosome", "Start", "End","Name"],columns="Sample",values=['Mean Depth', 'Norm Depth'])
@@ -382,6 +386,7 @@ if __name__ == "__main__":
         #covDF = covDF.drop(columns="NUMT Mean")
         coverageDict[dfName] = rawCovDF
         pivotCoverageDict[dfName] = collapsedCovDF
+        
 
 
     #### for mitochondria, add a 100 bp binned sheet ######
