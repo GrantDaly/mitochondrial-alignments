@@ -406,7 +406,7 @@ if __name__ == "__main__":
     
     # start writing excel Workbook
     if args.timestamp == True:
-        now = datetime.datetime.now()
+        now = datetime.datetime.now().strftime("%m-%d-%Y-%H%M")
         outExcelName = args.nameprefix + "-" +  str(now) + ".xlsx"
         outExcelNameHeteroplasmy = args.nameprefix + "-Heteroplasmy-" +  str(now) + ".xlsx"
     else:
