@@ -11,14 +11,14 @@ workflow CallHeteroplasmies {
     File fasta_index
     }
     output {
-    Array[File] vcfs = heteroplasmies.vcf
-    Array[File] vcf_indexes = heteroplasmies.index
+    Array[File] vcfs = raw_vcf.vcf
+    Array[File] vcf_indexes = raw_vcf.index
     
     }
     Array[Int] sample_indices = range(length(sample_names))
     scatter (sample_index in sample_indices) {
 
-        call CallHeteroplasmies as heteroplasmies{
+        call GenerateRawVCF as raw_vcf{
            input:
                sample_name = sample_names[sample_index],
                sample_bam = bam_files[sample_index],
@@ -32,7 +32,7 @@ workflow CallHeteroplasmies {
     }
 
 
-task CallHeteroplasmies {
+task GenerateRawVCF {
    input {
       String sample_name
       File sample_bam
@@ -41,8 +41,8 @@ task CallHeteroplasmies {
       File fasta_index
    }
    output {
-      File vcf = "~{sample_name}.heteroplasmy.vcf.gz"
-      File index = "~{sample_name}.heteroplasmy.vcf.gz.csi"
+      File vcf = "~{sample_name}.raw.vcf.gz"
+      File index = "~{sample_name}.raw.vcf.gz.csi"
    }
    runtime {
    docker: "gdaly9000/mitochondrial"
@@ -55,8 +55,8 @@ task CallHeteroplasmies {
    bcftools mpileup -f ~{fasta} -r chrM -d 10000 -q 20 -Q 20 -a FORMAT/AD,FORMAT/ADF,FORMAT/ADR,FORMAT/DP,FORMAT/SP,INFO/AD,INFO/ADF,INFO/ADR ~{sample_bam} | bcftools call -m -A | bcftools filter -e 'ALT=="."' -O z -o "~{sample_name}.raw.vcf.gz"
    bcftools index "~{sample_name}.raw.vcf.gz"
    
-   bcftools plugin heteroplasmy -O z -o "~{sample_name}.heteroplasmy.vcf.gz" "~{sample_name}.raw.vcf.gz"
-   bcftools index "~{sample_name}.heteroplasmy.vcf.gz" 
+   #bcftools plugin heteroplasmy -O z -o "~{sample_name}.heteroplasmy.vcf.gz" "~{sample_name}.raw.vcf.gz"
+   #bcftools index "~{sample_name}.heteroplasmy.vcf.gz" 
  }
 }
 

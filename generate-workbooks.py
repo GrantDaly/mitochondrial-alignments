@@ -443,13 +443,13 @@ if __name__ == "__main__":
     writer.save()
 
     # write bigwig files
-    
     outDirCoverage = Path(outputDir  / "coverage")
     if not outDirCoverage.is_dir():
         outDirCoverage.mkdir()
     # output raw coverage tsv
     for tempName, tempDF in coverageDict.items():
         tempDF.to_csv(outDirCoverage / (tempName + ".coverage.tsv"),sep="\t",index=None)
+    
     createBigWigs(outDirCoverage, designDF, coverageDict[mitoName])
 
     ### process heteroplasmy tsv file
@@ -461,6 +461,7 @@ if __name__ == "__main__":
     outDirVariants = Path(outputDir / "variants")
     if not outDirVariants.is_dir():
         outDirVariants.mkdir()
+    
     outVarIntermediatePath = outDirVariants / "heteroplasmy.intermediate.tsv"
     if ((not outVarIntermediatePath.is_file()) or (args.regenfiles)):
 
@@ -481,7 +482,7 @@ if __name__ == "__main__":
     varCounts = pd.pivot_table(raw_variants, index="Sample", columns="Genotype", values="ADVar", aggfunc="count")
     varCounts = varCounts.merge(designDF, how="left", left_index=True, right_on="Sample")
     # write to heteroplasmy workbook
-
+    
     # defined Excel workbook name earlier
     writer = pd.ExcelWriter(outDirWorkbooks / outExcelNameHeteroplasmy, engine='xlsxwriter')
     varCounts.to_excel(writer, "Summary Counts", index=False)
