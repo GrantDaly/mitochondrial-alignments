@@ -29,7 +29,7 @@ workflow coverageAndInsert {
                sample_name = sample_name,
                sample_bam = bam_file,
                sample_index  = bam_index,
-               groupName = bed_names[bed_index],
+               group_name = bed_names[bed_index],
                bed = bed_files[bed_index]
         }
     }
@@ -44,7 +44,7 @@ task Postprocess {
     String sample_name
     File sample_bam
     File sample_index
-    String groupName
+    String group_name
     File bed
   }
   output {
@@ -65,6 +65,6 @@ task Postprocess {
     set -e
     echo "Post process Checksum " $(md5sum $(which inserts-and-cov))
 
-    inserts-and-cov --bed ~{bed} --prefix ~{groupName} --bam ~{sample_bam} --outDir $(pwd) --name ~{sample_name}
+    inserts-and-cov --bed ~{bed} --prefix ~{group_name} --bam ~{sample_bam} --outDir $(pwd) --name ~{sample_name}
   }
 }
