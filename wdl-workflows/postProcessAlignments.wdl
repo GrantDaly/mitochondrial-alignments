@@ -7,7 +7,7 @@ workflow coverageAndInsert {
     File bam_file
     File bam_index
     
-    Array[File] bed_names
+    Array[String] bed_names
     Array[File] bed_files
     
     File fasta
