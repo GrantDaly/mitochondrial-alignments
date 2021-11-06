@@ -48,11 +48,11 @@ task Postprocess {
     File bed
   }
   output {
-    #Array[File] output_tsvs = glob("*/*.tsv")
-    File coverage_stats = "coverage-outputs/*.coverage.stats.tsv"
-    File coverages = "coverage-outputs/*.coverage.tsv"
-    File insert_stats = "insert-outputs/*.insert.stats.tsv"
-    File insert_histogram = "insert-outputs/*.insert.hist.tsv"
+    
+    File coverage_stats = "coverage-outputs/~{sample_name}.~{group_name}.coverage.stats.tsv"
+    File coverages = "coverage-outputs/~{sample_name}.~{group_name}.coverage.tsv"
+    File insert_stats = "insert-outputs/~{sample_name}.~{group_name}.insert.stats.tsv"
+    File insert_histogram = "insert-outputs/~{sample_name}.~{group_name}.insert.hist.tsv"
   }
    runtime {
    docker: "gdaly9000/mitochondrial"
