@@ -1,0 +1,7 @@
+{
+  "GeneratePileup.sample_name": "S9",
+  "GeneratePileup.bam_index": "gs://south-al-genomics/sampleData/wdl-test/align/output/S9_0.bam.bai",
+  "GeneratePileup.fasta": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta",
+  "GeneratePileup.fasta_index": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai",
+  "GeneratePileup.bam_file": "gs://south-al-genomics/sampleData/wdl-test/align/output/S9_0.bam"
+}
