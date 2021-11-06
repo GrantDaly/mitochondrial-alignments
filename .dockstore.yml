@@ -17,13 +17,13 @@ workflows:
              - /.*/
          branches:
              - master
-             - oneSample
+
    - name: PostProcess
      subclass: WDL
      publish: True
-     primaryDescriptorPath: /wdl-workflows/post-process-alignments.wdl
+     primaryDescriptorPath: /wdl-workflows/postProcessAlignments.wdl
      testParameterFiles:
-         - /wdl-workflows/post-process-alignments.inputs.json
+         - /wdl-workflows/postProcessAlignments.inputs.json
      authors:
          - name: "Grant Daly"
            orcid: "0000-0002-4109-0546"
@@ -35,13 +35,13 @@ workflows:
              - /.*/
          branches:
              - master
-             - oneSample
-   - name: CallHeteroplasmies
+
+   - name: CallPileup
      subclass: WDL
      publish: True
-     primaryDescriptorPath: /wdl-workflows/call-heteroplasmies.wdl
+     primaryDescriptorPath: /wdl-workflows/generatePileup.wdl
      testParameterFiles:
-         - /wdl-workflows/post-process-alignments.inputs.json
+         - /wdl-workflows/generatePileup.inputs.json
      authors:
          - name: "Grant Daly"
            orcid: "0000-0002-4109-0546"
@@ -53,4 +53,4 @@ workflows:
              - /.*/
          branches:
              - master
-             - oneSample
+

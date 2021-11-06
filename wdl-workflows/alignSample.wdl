@@ -1,19 +1,5 @@
 version 1.0
 
-
-
-struct Flowcell {
-  String flowcell_name
-  String flowcell_lane
-  Array[String] filenames
-}
-
-struct Sample {
-   String sample_name
-   String library_name
-   Array[Flowcell] flowcells
-}
-
 workflow alignSample {
 
    input {
@@ -27,11 +13,12 @@ workflow alignSample {
     File ref_sa
     
    String sample_name
-   Array[String] library_names
-   Array[String] flowcell_names
-   Array[String] flowcell_lanes
-   Array[File] fastq_ones
-   Array[File] fastq_twos
+   #Array[String] library_names
+   #Array[String] flowcell_names
+   #Array[String] flowcell_lanes
+   #Array[File] fastq_ones
+   #Array[File] fastq_twos
+   File fastq_tsv
     }
 
     output {
@@ -41,8 +28,10 @@ workflow alignSample {
     File out_bam_stats = merge.bam_stats
     }
 
-    Array[Int] indices = range(length(fastq_ones))
-    scatter (i in indices) {
+    #Array[Int] indices = range(length(fastq_ones))
+    Array[Array[String]] fastq_tsv_array = read_tsv(fastq_tsv)
+    scatter (flowcell in fastq_tsv_array) {
+        
         call AlignAndSort as align{
            input:
                ref_fasta = ref_fasta,
@@ -53,11 +42,11 @@ workflow alignSample {
                ref_pac = ref_pac,
                ref_sa = ref_sa,
            sample_name = sample_name,
-           library = library_names[i],
-           flowcell = flowcell_names[i],
-           lane = flowcell_lanes[i],
-           fastq_1 = fastq_ones[i],
-           fastq_2 = fastq_twos[i]
+           library = flowcell[0],
+           flowcell = flowcell[1],
+           lane = flowcell[2],
+           fastq_1 = flowcell[3],
+           fastq_2 = flowcell[4]
         }
     }
             call MergeBams as merge {

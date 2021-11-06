@@ -11,38 +11,43 @@ workflow CallHeteroplasmies {
     File fasta_index
     }
     output {
-    Array[File] vcfs = raw_vcf.vcf
-    Array[File] vcf_indexes = raw_vcf.index
+
+    File vcf = raw_vcf.vcf
+    File vcf_index = raw_vcf.index
+    
+    File called_vcf = raw_vcf.called_vcf
+    File called_vcf_index = raw_vcf.called_vcf_index
+
     
     }
-    Array[Int] sample_indices = range(length(sample_names))
-    scatter (sample_index in sample_indices) {
+    #Array[Int] sample_indices = range(length(sample_names))
 
         call GenerateRawVCF as raw_vcf{
            input:
-               sample_name = sample_names[sample_index],
-               sample_bam = bam_files[sample_index],
-               sample_index  = bam_indexes[sample_index],
+               sample_bams = bam_files,
+               sample_indexes  = bam_indexes,
                fasta = fasta,
                fasta_index = fasta_index
         }
     }
-    
-    
-    }
+
 
 
 task GenerateRawVCF {
    input {
-      String sample_name
-      File sample_bam
-      File sample_index
+      Array[File] sample_bams
+      Array[File] sample_indexes
       File fasta
       File fasta_index
    }
    output {
-      File vcf = "~{sample_name}.raw.vcf.gz"
-      File index = "~{sample_name}.raw.vcf.gz.csi"
+
+      File vcf = "out.raw.vcf.gz"
+      File index = "out.raw.vcf.gz.csi"
+      
+      File called_vcf = "out.heteroplasmy.vcf.gz"
+      File called_vcf_index = "out.heteroplasmy.vcf.gz.csi"
+
    }
    runtime {
    docker: "gdaly9000/mitochondrial"
@@ -52,11 +57,15 @@ task GenerateRawVCF {
  }
  command {
    bcftools --version
-   bcftools mpileup -f ~{fasta} -r chrM -d 10000 -q 20 -Q 20 -a FORMAT/AD,FORMAT/ADF,FORMAT/ADR,FORMAT/DP,FORMAT/SP,INFO/AD,INFO/ADF,INFO/ADR ~{sample_bam} | bcftools call -m -A | bcftools filter -e 'ALT=="."' -O z -o "~{sample_name}.raw.vcf.gz"
-   bcftools index "~{sample_name}.raw.vcf.gz"
+   bcftools mpileup -f ~{fasta} -r chrM -d 10000 -q 20 -Q 20 -a FORMAT/AD,FORMAT/ADF,FORMAT/ADR,FORMAT/DP,FORMAT/SP,INFO/AD,INFO/ADF,INFO/ADR ~{sep=" " sample_bams}| bcftools call -m -A | bcftools filter -e 'ALT=="."' -O z -o "out.raw.vcf.gz"
+   bcftools index "out.raw.vcf.gz"
    
-   #bcftools plugin heteroplasmy -O z -o "~{sample_name}.heteroplasmy.vcf.gz" "~{sample_name}.raw.vcf.gz"
-   #bcftools index "~{sample_name}.heteroplasmy.vcf.gz" 
+
+   bcftools plugin heteroplasmy --version
+
+   bcftools plugin heteroplasmy -O z -o "out.heteroplasmy.vcf.gz" "out.raw.vcf.gz"
+   bcftools index "out.heteroplasmy.vcf.gz" 
+
  }
 }
 
