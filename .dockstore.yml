@@ -17,7 +17,7 @@ workflows:
              - /.*/
          branches:
              - master
-             - oneSample
+
    - name: PostProcess
      subclass: WDL
      publish: True
@@ -35,7 +35,7 @@ workflows:
              - /.*/
          branches:
              - master
-             - oneSample
+
    - name: CallHeteroplasmies
      subclass: WDL
      publish: True
@@ -53,4 +53,4 @@ workflows:
              - /.*/
          branches:
              - master
-             - oneSample
+
