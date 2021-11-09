@@ -200,7 +200,9 @@ def getAnnotationsAll(idSeries):
     idSeries = pd.Series(idSeries.unique())
     #pdb.set_trace()
     for rangeBin in range((len(idSeries) // binSize) + 1):
+        print("Making Variant Effect Request")
         decoded = makeRequest(idSeries[rangeBin*binSize:rangeBin*binSize + binSize])
+        print("Completed Request")
         tempDF = processVEPReturn(decoded)
         outList.append(tempDF)
         
@@ -323,6 +325,7 @@ if __name__ == "__main__":
     for bedParams in params['groups']:
 
         tempName = bedParams['name']
+        print("Processing %s" % tempName)
         
         if(bedParams['positions'] == "full"):
             # don't need to aggregate
@@ -390,6 +393,7 @@ if __name__ == "__main__":
 
 
     #### for mitochondria, add a 100 bp binned sheet ######
+    print("Binnded Mitochondrial Coverage")
     binnedMito = coverageDict[mitoName].loc[:,["Sample", "Offset","Depth", "Norm Depth"]]
     binnedMito['Bin'] = (binnedMito['Offset'] // 100 ) + 1
     binnedMito = pd.pivot_table(binnedMito, values=["Depth", "Norm Depth"], index=["Bin"], columns="Sample", aggfunc="mean")
@@ -408,7 +412,7 @@ if __name__ == "__main__":
         tempPivot = insertHist.pivot_table(index=["Intervals"], columns=["Sample"],
                                                   values=["Smoothed % Density"])
         pivotedInsertHistDict[insertName] = tempPivot
-    
+    print("Main Workbook Output")
     # start writing excel Workbook
     if args.timestamp == True:
         now = datetime.datetime.now().strftime("%m-%d-%Y-%H%M")
@@ -443,6 +447,7 @@ if __name__ == "__main__":
     writer.save()
 
     # write bigwig files
+    print("Creating Bigwig Files")
     outDirCoverage = Path(outputDir  / "coverage")
     if not outDirCoverage.is_dir():
         outDirCoverage.mkdir()
@@ -457,6 +462,7 @@ if __name__ == "__main__":
     inVarTSV = inputDir / "out.heteroplasmy.tsv.gz"
     if(not inVarTSV.is_file()):
         exit()
+    print("Processing Variants")
     # if allowing skpping regen and the file already exists then read it in
     outDirVariants = Path(outputDir / "variants")
     if not outDirVariants.is_dir():
@@ -479,7 +485,7 @@ if __name__ == "__main__":
         merged_variants = pd.read_csv(outVarIntermediatePath, sep="\t")
     # get variant counts
     variants_only = merged_variants.query('Genotype != "Ref"')
-    varCounts = pd.pivot_table(raw_variants, index="Sample", columns="Genotype", values="ADVar", aggfunc="count")
+    varCounts = pd.pivot_table(merged_variants, index="Sample", columns="Genotype", values="ADVar", aggfunc="count")
     varCounts = varCounts.merge(designDF, how="left", left_index=True, right_on="Sample")
     # write to heteroplasmy workbook
     
