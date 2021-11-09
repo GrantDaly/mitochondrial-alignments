@@ -277,8 +277,8 @@ def parseVariantTSV(fileName):
                 outList.append(entryDict)
     outDF = pd.DataFrame(outList)
     
-    outDF.to_csv("/tmp/temp.csv", index=False)
-    outDF = pd.read_csv("/tmp/temp.csv",dtype={'MinorFreq': float})
+    outDF = outDF.replace('.', np.NaN)
+    
     outDF = outDF.set_index(["Chromosome", "Start", "ref", "alt"])
     return outDF    
 
