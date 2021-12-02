@@ -131,6 +131,7 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
         outRawStringFor = str(outDirRaw / (outNameRaw + ".F1R2.bw"))
         outRawStringRev = str(outDirRaw / (outNameRaw + ".F2R1.bw"))
         outRawStringDiff = str(outDirRaw / (outNameRaw + ".StrandDiff.bw"))
+        
         tempPyRangesRaw.to_bigwig(path = outRawString, value_col="Depth")
         #pdb.set_trace()
         rawDesignList.append({'TRACK_ID': outNameRaw + ".bw", 'INDIVIDUAL_ID': individual,
@@ -383,6 +384,7 @@ if __name__ == "__main__":
             
         elif("Mean Depth" in rawCovDF.columns):
             rawCovDF['Norm Depth'] = rawCovDF['Mean Depth'] / rawCovDF['NUMT Mean']
+            
             collapsedCovDF = rawCovDF.pivot(index=["Chromosome", "Start", "End","Name"],columns="Sample",values=['Mean Depth', 'Norm Depth'])
 
         # once I'm confident in results could drop the column
@@ -417,16 +419,17 @@ if __name__ == "__main__":
     if args.timestamp == True:
         now = datetime.datetime.now().strftime("%m-%d-%Y-%H%M")
         outExcelName = args.nameprefix + "-" +  str(now) + ".xlsx"
-        outExcelNameHeteroplasmy = args.nameprefix + "-Heteroplasmy-" +  str(now) + ".xlsx"
+        #outExcelNameHeteroplasmy = args.nameprefix + "-Heteroplasmy-" +  str(now) + ".xlsx"
     else:
         outExcelName = args.nameprefix + ".xlsx"
-        outExcelNameHeteroplasmy = args.nameprefix + "-Heteroplasmy.xlsx"
+        #outExcelNameHeteroplasmy = args.nameprefix + "-Heteroplasmy.xlsx"
 
     outDirWorkbooks = Path(outputDir  / "workbooks")
     if not outDirWorkbooks.is_dir():
         outDirWorkbooks.mkdir()
 
     writer = pd.ExcelWriter(outDirWorkbooks / outExcelName)
+    
     designDF.sort_values("Sample").to_excel(writer, "Design", index=None)
 
     for tempName, tempDF in coverageStatsDict.items():
@@ -469,30 +472,30 @@ if __name__ == "__main__":
         outDirVariants.mkdir()
     
     outVarIntermediatePath = outDirVariants / "heteroplasmy.intermediate.tsv"
-    if ((not outVarIntermediatePath.is_file()) or (args.regenfiles)):
+    # if ((not outVarIntermediatePath.is_file()) or (args.regenfiles)): 
 
-        raw_variants = parseVariantTSV(inVarTSV)
-        raw_variants['Genotype'] = raw_variants['Genotype'].replace({"0/0": "Ref",
-                                "0/1": "Heteroplasmy",
-                                "1/0": "Heteroplasmy", 
-                                "1/1": "Homoplasmy",
-                                "./.": "Missing"})
-        annotationDF = getAnnotationsAll(raw_variants.query('(ID != "NORSID") and (Genotype != "Ref")')['ID'])
-        merged_variants = raw_variants.reset_index().merge(designDF, how="left", on="Sample")
-        merged_variants = merged_variants.merge(annotationDF, how="left", on="ID")
-        merged_variants.to_csv(outVarIntermediatePath, sep="\t")
-    else:
-        merged_variants = pd.read_csv(outVarIntermediatePath, sep="\t")
-    # get variant counts
-    variants_only = merged_variants.query('Genotype != "Ref"')
-    varCounts = pd.pivot_table(merged_variants, index="Sample", columns="Genotype", values="ADVar", aggfunc="count")
-    varCounts = varCounts.merge(designDF, how="left", left_index=True, right_on="Sample")
-    # write to heteroplasmy workbook
+    raw_variants = parseVariantTSV(inVarTSV)
+    raw_variants['Genotype'] = raw_variants['Genotype'].replace({"0/0": "Ref",
+                            "0/1": "Heteroplasmy",
+                            "1/0": "Heteroplasmy", 
+                            "1/1": "Homoplasmy",
+                            "./.": "Missing"})
+    #annotationDF = getAnnotationsAll(raw_variants.query('(ID != "NORSID") and (Genotype != "Ref")')['ID'])
+    merged_variants = raw_variants.reset_index().merge(designDF, how="left", on="Sample")
+    #merged_variants = merged_variants.merge(annotationDF, how="left", on="ID")
+    merged_variants.to_csv(outVarIntermediatePath, sep="\t")
+    # else:
+    #     merged_variants = pd.read_csv(outVarIntermediatePath, sep="\t")
+    # # get variant counts
+    # variants_only = merged_variants.query('Genotype != "Ref"')
+    # varCounts = pd.pivot_table(merged_variants, index="Sample", columns="Genotype", values="ADVar", aggfunc="count")
+    # varCounts = varCounts.merge(designDF, how="left", left_index=True, right_on="Sample")
+    # # write to heteroplasmy workbook
     
-    # defined Excel workbook name earlier
-    writer = pd.ExcelWriter(outDirWorkbooks / outExcelNameHeteroplasmy, engine='xlsxwriter')
-    varCounts.to_excel(writer, "Summary Counts", index=False)
-    for name,group in variants_only.groupby("Sample"):
-        print(name)
-        group.to_excel(writer, name, index=False)
-    writer.save()
+    # # defined Excel workbook name earlier
+    # writer = pd.ExcelWriter(outDirWorkbooks / outExcelNameHeteroplasmy, engine='xlsxwriter')
+    # varCounts.to_excel(writer, "Summary Counts", index=False)
+    # for name,group in variants_only.groupby("Sample"):
+    #     print(name)
+    #     group.to_excel(writer, name, index=False)
+    # writer.save()
