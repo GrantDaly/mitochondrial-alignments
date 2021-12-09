@@ -17,6 +17,7 @@ workflow coverageAndInsert {
     Array[File] coverage_stats = process_beds.coverage_stats
     Array[File] coverages = process_beds.coverages
     Array[File] insert_histograms = process_beds.insert_histogram
+    Array[File] insert_bins = process_beds.insert_bin
     Array[File] insert_stats = process_beds.insert_stats
 
     }
@@ -53,6 +54,10 @@ task Postprocess {
     File coverages = "coverage-outputs/~{sample_name}.~{group_name}.coverage.tsv"
     File insert_stats = "insert-outputs/~{sample_name}.~{group_name}.insert.stats.tsv"
     File insert_histogram = "insert-outputs/~{sample_name}.~{group_name}.insert.hist.tsv"
+
+    File insert_bin = "insert-outputs/~{sample_name}.~{group_name}.insert.bin.tsv"
+
+    
   }
    runtime {
    docker: "gdaly9000/mitochondrial"
@@ -66,5 +71,8 @@ task Postprocess {
     echo "Post process Checksum " $(md5sum $(which inserts-and-cov))
 
     inserts-and-cov --bed ~{bed} --prefix ~{group_name} --bam ~{sample_bam} --outDir $(pwd) --name ~{sample_name}
+
+    
+
   }
 }

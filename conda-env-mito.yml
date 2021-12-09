@@ -1,4 +1,3 @@
-name: /mnt/disks/mitochondrial/development/mitochondrial-alignments/mito-envs
 channels:
   - conda-forge
   - quantstack

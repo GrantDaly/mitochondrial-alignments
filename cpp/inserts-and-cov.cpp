@@ -54,7 +54,7 @@ std::cout <<
 	   "--prefix or -p Prefix for output\n"
            "--bam or -s (for sam) for alignments\n"
            "--outDir or -d for output directory\n"
-           "--name or -n for sample name\n"
+-           "--name or -n for sample name\n"
            "--help or -h Print help\n";
  exit(1);
 
@@ -209,6 +209,12 @@ int main(int argc, char* argv[]){
      }
      std::vector<int> insertVec;
 
+     auto insertVecBinSize = 100;
+     std::ofstream outBinInsertFile;
+   
+   fs::path outBinInsertName{sampleName + "." + filePrefix + ".insert.bin.tsv"};
+   outBinInsertFile.open(outDirectory / insertDir / outBinInsertName  , std::ios::out);
+   outBinInsertFile << "Chromosome\tStart\tEnd\tName\tScore\tStrand\tBin\tSample\tMean\tStd-Dev\tMin\t25%\t50%\t75%\tMax" << std::endl;
      
    while(inBed >> bedLine){
      //std::cout << bedLine << std::endl;
@@ -224,7 +230,10 @@ int main(int argc, char* argv[]){
        FtwoRone[i] = 0;
      }
 
-    
+     // make a vector of vectors
+     auto numberInsertBins = ((intervalLength - 1) / insertVecBinSize) + 1;
+     std::vector<int> binInsertVecs[numberInsertBins];
+     
      
      
   // iterate over region
@@ -268,9 +277,15 @@ int main(int argc, char* argv[]){
 	// coverages 
       if(strandReturn == 1){
 	updateCovArray(FoneRtwo, covArrayStart, covArrayEnd);
+
+	// forward orientation, so start is leftmost
+	binInsertVecs[leftPos / insertVecBinSize].push_back(absInsert);
       }
       else if(strandReturn == 2){
 	updateCovArray(FtwoRone, covArrayStart, covArrayEnd);
+
+	// reverse orientation, so start is rightmost
+	binInsertVecs[rightPos / insertVecBinSize].push_back(absInsert);
       }
       }
 
@@ -283,6 +298,7 @@ int main(int argc, char* argv[]){
      
 	rawInsertHist[absInsert -1]+=1;
 	insertVec.push_back(absInsert);
+	
     }
       } 
 	
@@ -303,7 +319,32 @@ int main(int argc, char* argv[]){
       sampleName << "\t" << offset << "\t" <<     
       FoneRtwo[offset] << "\t" << FtwoRone[offset] << "\t" << fullCoverage << std::endl;
   }
-  
+  // writing interval binned inserts to file
+  for(int binNum=0; binNum < numberInsertBins; binNum++){
+    auto tempInsertVec = binInsertVecs[binNum];   
+  if(tempInsertVec.size() > 0){
+   std::sort(tempInsertVec.begin(), tempInsertVec.end());
+   auto insertMean = gsl_stats_int_mean(tempInsertVec.data(), 1, tempInsertVec.size());
+   auto insertStdev = gsl_stats_int_sd(tempInsertVec.data(), 1, tempInsertVec.size());
+   auto insertMin = gsl_stats_int_min(tempInsertVec.data(), 1, tempInsertVec.size());
+   auto insertTwentyFive = gsl_stats_int_quantile_from_sorted_data(tempInsertVec.data(), 1, tempInsertVec.size(), 0.25);
+   auto insertMedian = gsl_stats_int_median_from_sorted_data(tempInsertVec.data(), 1, tempInsertVec.size());
+   auto insertSeventyFive = gsl_stats_int_quantile_from_sorted_data(tempInsertVec.data(), 1, tempInsertVec.size(), 0.75);
+   auto insertMax = gsl_stats_int_max(tempInsertVec.data(), 1, tempInsertVec.size());
+   
+   outBinInsertFile << bedLine.chrom << "\t" << bedLine.start << "\t"
+		    << bedLine.end << "\t" << bedLine.name << "\t"
+		    << bedLine.score << "\t" << bedLine.strand << "\t" 
+		    << "\t" <<  binNum + 1 << "\t" << sampleName << "\t"
+		    << insertMean << "\t" << insertStdev <<
+     "\t" << insertMin << "\t" << insertTwentyFive
+		    << "\t" << insertMedian << "\t" <<
+     insertSeventyFive << "\t" << insertMax << std::endl;
+   }
+   else{
+     outBinInsertFile << sampleName << "\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan" << std::endl;
+   }
+  }
 
    }
 

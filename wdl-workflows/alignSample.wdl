@@ -26,6 +26,7 @@ workflow alignSample {
     File out_bam_index = merge.out_bam_index
     Array[File] out_artifacts = Artifacts.out_artifacts
     File out_bam_stats = merge.bam_stats
+    Int raw_read_count = merge.raw_read_count
     }
 
     #Array[Int] indices = range(length(fastq_ones))
@@ -116,6 +117,7 @@ task MergeBams {
    File out_bam = "~{sample}.bam"
    File out_bam_index = "~{sample}.bam.bai"
    File bam_stats = "~{sample}.stats.txt"
+   Int raw_read_count = read_int("raw_reads.txt")
    }
    runtime {
    docker: "gdaly9000/mitochondrial"
@@ -130,6 +132,8 @@ task MergeBams {
   samtools merge --threads 16 -O BAM "~{sample}.bam" ~{sep=" " inBams}
   samtools index "~{sample}.bam"
   samtools flagstat "~{sample}.bam" > "~{sample}.stats.txt"
+  # get file with only raw number of reads
+  samtools flagstat "~{sample}.bam" | head -1 | cut -d " " -f 1 > raw_reads.txt
   
   }
 }
