@@ -270,6 +270,7 @@ int main(int argc, char* argv[]){
 	  (insertSize > 0)){
 	//std::cout << "bed start " << start << " bed end " << end << std::endl;
 	//std::cout << "read start " << leftPos << " insert " << insertSize << " end " << rightPos << std::endl;
+	
 	auto covArrayStart = std::max(leftPos, start) - start;
         auto covArrayEnd = std::min(rightPos, end) - start ;
         //std::cout << "corrected start " << covArrayStart << "corrected end " << covArrayEnd << std::endl;
@@ -279,13 +280,13 @@ int main(int argc, char* argv[]){
 	updateCovArray(FoneRtwo, covArrayStart, covArrayEnd);
 
 	// forward orientation, so start is leftmost
-	binInsertVecs[leftPos / insertVecBinSize].push_back(absInsert);
+	binInsertVecs[covArrayStart / insertVecBinSize].push_back(absInsert);
       }
       else if(strandReturn == 2){
 	updateCovArray(FtwoRone, covArrayStart, covArrayEnd);
 
 	// reverse orientation, so start is rightmost
-	binInsertVecs[rightPos / insertVecBinSize].push_back(absInsert);
+	binInsertVecs[covArrayEnd / insertVecBinSize].push_back(absInsert);
       }
       }
 
