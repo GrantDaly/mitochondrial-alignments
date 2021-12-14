@@ -337,13 +337,17 @@ int main(int argc, char* argv[]){
 		    << bedLine.end << "\t" << bedLine.name << "\t"
 		    << bedLine.score << "\t" << bedLine.strand << "\t" 
 		    << "\t" <<  binNum + 1 << "\t" << sampleName << "\t"
-		    << insertMean << "\t" << insertStdev <<
-     "\t" << insertMin << "\t" << insertTwentyFive
+		    << insertMean << "\t" << insertStdev << "\t"
+		    << insertMin << "\t" << insertTwentyFive
 		    << "\t" << insertMedian << "\t" <<
      insertSeventyFive << "\t" << insertMax << std::endl;
    }
    else{
-     outBinInsertFile << sampleName << "\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan" << std::endl;
+     outBinInsertFile <<  bedLine.chrom << "\t" << bedLine.start << "\t"
+		    << bedLine.end << "\t" << bedLine.name << "\t"
+		    << bedLine.score << "\t" << bedLine.strand << "\t" 
+		    <<  binNum + 1 << "\t" << sampleName << "\t"
+		    << "\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan" << std::endl;
    }
   }
 
