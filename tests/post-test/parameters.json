@@ -1,7 +1,7 @@
 {"groups": 
-[{"name": "mito", "positions": "full", "inserts":"include"},
- {"name": "numt", "positions": "aggregate", "inserts": "include"},
- {"name": "shuffled", "positions": "aggregate", "inserts": "exclude"},
- {"name": "polymorphic-numt", "positions": "aggregate", "inserts": "exclude"}],
-"normalization": {"mitochondrial-name": "mito", "numt-name": "numt"}
+[{"name": "Mitochondria", "positions": "full", "inserts":"include"},
+ {"name": "NUMT", "positions": "aggregate", "inserts": "include"},
+ {"name": "Shuffled-NUMT", "positions": "aggregate", "inserts": "exclude"},
+ {"name": "Polymorphic-NUMT", "positions": "aggregate", "inserts": "exclude"}],
+"normalization": {"mitochondrial-name": "Mitochondria", "numt-name": "NUMT"}
 }

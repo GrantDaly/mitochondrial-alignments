@@ -71,12 +71,23 @@ def getRawInsertsDF(bedPrefix, inputDir):
 
     insertStatsList = []
     insertStatsGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".insert.stats.tsv")
+
+    binnedInsertStatsList = []
+    binnedInsertStatsGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".insert.bin.tsv")
     for insertStatFile in insertStatsGlob:
         tempStats = pd.read_csv(insertStatFile, sep="\t")
         insertStatsList.append(tempStats)
     insertStatDF = pd.concat(insertStatsList, axis=0).sort_values("Sample")
 
-    return insertHistDF, insertStatDF
+    binnedInsertStatsList = []
+    binnedInsertStatsGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".insert.bin.tsv")
+    for binInsertStatFile in binnedInsertStatsGlob:
+        tempBinStats = pd.read_csv(binInsertStatFile, sep="\t")
+        binnedInsertStatsList.append(tempBinStats)
+    binnedInsertStatDF = pd.concat(binnedInsertStatsList, axis=0).sort_values("Sample")
+    
+
+    return insertHistDF, insertStatDF, binnedInsertStatDF
 
 def createBigWigs(coverageDir, designDF, normMitoCov):
     
@@ -322,6 +333,7 @@ if __name__ == "__main__":
     coverageStatsDict = {}
     insertHistDict = {}
     insertStatsDict = {}
+    binnedInsertStatsDict = {}
     
     for bedParams in params['groups']:
 
@@ -344,9 +356,10 @@ if __name__ == "__main__":
         # if inserts are requested, add to dict
         if(bedParams['inserts'] == "include"):
             # add to dict
-            tempInsertHist, tempInsertStats = getRawInsertsDF(tempName, inputDir)
+            tempInsertHist, tempInsertStats, tempBinnedInsertStats = getRawInsertsDF(tempName, inputDir)
             insertHistDict[tempName] = tempInsertHist
             insertStatsDict[tempName] = tempInsertStats
+            binnedInsertStatsDict[tempName] = tempBinnedInsertStats
             
         elif(('inserts' not in bedParams.keys()) or (bedParams['inserts'] == "exclude")):
             pass
@@ -395,7 +408,7 @@ if __name__ == "__main__":
 
 
     #### for mitochondria, add a 100 bp binned sheet ######
-    print("Binnded Mitochondrial Coverage")
+    print("Binned Mitochondrial Coverage")
     binnedMito = coverageDict[mitoName].loc[:,["Sample", "Offset","Depth", "Norm Depth"]]
     binnedMito['Bin'] = (binnedMito['Offset'] // 100 ) + 1
     binnedMito = pd.pivot_table(binnedMito, values=["Depth", "Norm Depth"], index=["Bin"], columns="Sample", aggfunc="mean")
@@ -414,6 +427,9 @@ if __name__ == "__main__":
         tempPivot = insertHist.pivot_table(index=["Intervals"], columns=["Sample"],
                                                   values=["Smoothed % Density"])
         pivotedInsertHistDict[insertName] = tempPivot
+        
+    for binInsertName, binInsert in binnedInsertStatsDict.items():
+        binInsert.to_csv(outDirInserts / (insertName + ".bin.inserts.csv"),sep="\t",index=None)
     print("Main Workbook Output")
     # start writing excel Workbook
     if args.timestamp == True:
