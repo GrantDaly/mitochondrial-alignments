@@ -72,8 +72,6 @@ def getRawInsertsDF(bedPrefix, inputDir):
     insertStatsList = []
     insertStatsGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".insert.stats.tsv")
 
-    binnedInsertStatsList = []
-    binnedInsertStatsGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".insert.bin.tsv")
     for insertStatFile in insertStatsGlob:
         tempStats = pd.read_csv(insertStatFile, sep="\t")
         insertStatsList.append(tempStats)
@@ -429,7 +427,7 @@ if __name__ == "__main__":
         pivotedInsertHistDict[insertName] = tempPivot
         
     for binInsertName, binInsert in binnedInsertStatsDict.items():
-        binInsert.to_csv(outDirInserts / (insertName + ".bin.inserts.csv"),sep="\t",index=None)
+        binInsert.to_csv(outDirInserts / (binInsertName + ".bin.inserts.csv"),sep="\t",index=None)
     print("Main Workbook Output")
     # start writing excel Workbook
     if args.timestamp == True:
