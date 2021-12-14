@@ -338,7 +338,7 @@ int main(int argc, char* argv[]){
 		    << bedLine.score << "\t" << bedLine.strand << "\t" 
 		    << "\t" <<  binNum + 1 << "\t" << sampleName << "\t"
 		    << insertMean << "\t" << insertStdev <<
-     "\t" << insertMin << "\t" << insertTwentyFive
+		    << insertMin << "\t" << insertTwentyFive
 		    << "\t" << insertMedian << "\t" <<
      insertSeventyFive << "\t" << insertMax << std::endl;
    }
