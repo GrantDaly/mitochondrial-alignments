@@ -111,36 +111,32 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
         outGroup['Start'] = outGroup['Offset']
         outGroup['End']  = outGroup['Start'] + 1
         outGroupNorm = outGroup.copy()
+        if not ((group['Depth'] == 0).all()):
+    
+            outNameRaw = name + "-raw"
+            outNameNorm = name + "-norm"
 
-    #    outGroup['Count'] = outGroup['Depth'] 
-    #    outGroupNorm['Count'] = outGroup['Norm Depth']
+            # only outputting bigwigs for now.
 
-        outNameRaw = name + "-raw"
-        outNameNorm = name + "-norm"
+            outGroupRawAll = outGroup.loc[:, ["Chromosome", "Start", "End", "Depth", "Forward_Depth", "Reverse_Depth"]]
 
-    #     filenameList.append(outName)
+            #outGroupRawAll['Percent_Diff_Strand'] = ((outGroupRawAll['Forward_Depth'] - outGroupRawAll['Reverse_Depth']) /  outGroupRawAll['Reverse_Depth']) * 100
+            #pdb.set_trace()
+            outGroupRawAll['LogFC_Diff_Strand'] = np.log2((outGroupRawAll['Forward_Depth'] + 1) /  (outGroupRawAll['Reverse_Depth'] + 1))
 
-        # only outputting bigwigs for now.
+            #outGroup.to_csv(outDirRaw / (outNameRaw + ".bg"), sep="\t", index=False, header=False)
 
-        outGroupRawAll = outGroup.loc[:, ["Chromosome", "Start", "End", "Depth", "Forward_Depth", "Reverse_Depth"]]
+            outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Norm Depth"]]
+            #outGroupNorm.to_csv(outDirNorm / (outNameNorm + ".bg"), sep="\t", index=False, header=False)
 
-        #outGroupRawAll['Percent_Diff_Strand'] = ((outGroupRawAll['Forward_Depth'] - outGroupRawAll['Reverse_Depth']) /  outGroupRawAll['Reverse_Depth']) * 100
-        #pdb.set_trace()
-        outGroupRawAll['LogFC_Diff_Strand'] = np.log2((outGroupRawAll['Forward_Depth'] + 1) /  (outGroupRawAll['Reverse_Depth'] + 1))
+            tempPyRangesRaw = pr.PyRanges(outGroupRawAll)
 
-        #outGroup.to_csv(outDirRaw / (outNameRaw + ".bg"), sep="\t", index=False, header=False)
+            outRawString = str(outDirRaw / (outNameRaw + ".bw"))
+            outRawStringFor = str(outDirRaw / (outNameRaw + ".F1R2.bw"))
+            outRawStringRev = str(outDirRaw / (outNameRaw + ".F2R1.bw"))
+            outRawStringDiff = str(outDirRaw / (outNameRaw + ".StrandDiff.bw"))
 
-        outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Norm Depth"]]
-        #outGroupNorm.to_csv(outDirNorm / (outNameNorm + ".bg"), sep="\t", index=False, header=False)
-
-        tempPyRangesRaw = pr.PyRanges(outGroupRawAll)
-
-        outRawString = str(outDirRaw / (outNameRaw + ".bw"))
-        outRawStringFor = str(outDirRaw / (outNameRaw + ".F1R2.bw"))
-        outRawStringRev = str(outDirRaw / (outNameRaw + ".F2R1.bw"))
-        outRawStringDiff = str(outDirRaw / (outNameRaw + ".StrandDiff.bw"))
-
-        if(len(tempPyRangesRaw) > 0):
+        
             tempPyRangesRaw.to_bigwig(path = outRawString, value_col="Depth")
             #pdb.set_trace()
             rawDesignList.append({'TRACK_ID': outNameRaw + ".bw", 'INDIVIDUAL_ID': individual,
