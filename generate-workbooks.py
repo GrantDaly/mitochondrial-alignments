@@ -111,7 +111,10 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
         outGroup['Start'] = outGroup['Offset']
         outGroup['End']  = outGroup['Start'] + 1
         outGroupNorm = outGroup.copy()
-        if not ((group['Depth'] == 0).all()):
+
+        if not((group['Depth'] == 0).all() or
+                (group['Forward_Depth'] == 0).all() or
+        (group['Reverse_Depth'] == 0).all()):
     
             outNameRaw = name + "-raw"
             outNameNorm = name + "-norm"
