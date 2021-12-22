@@ -133,40 +133,40 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
         outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Norm Depth"]]
         #outGroupNorm.to_csv(outDirNorm / (outNameNorm + ".bg"), sep="\t", index=False, header=False)
 
-        # pyranges to_bigwig not working
         tempPyRangesRaw = pr.PyRanges(outGroupRawAll)
 
         outRawString = str(outDirRaw / (outNameRaw + ".bw"))
         outRawStringFor = str(outDirRaw / (outNameRaw + ".F1R2.bw"))
         outRawStringRev = str(outDirRaw / (outNameRaw + ".F2R1.bw"))
         outRawStringDiff = str(outDirRaw / (outNameRaw + ".StrandDiff.bw"))
-        
-        tempPyRangesRaw.to_bigwig(path = outRawString, value_col="Depth")
-        #pdb.set_trace()
-        rawDesignList.append({'TRACK_ID': outNameRaw + ".bw", 'INDIVIDUAL_ID': individual,
-                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand': "Both",
-                              'Condition-Strand': 'NA'})
-        tempPyRangesRaw.to_bigwig(path = outRawStringFor, value_col="Forward_Depth")
-        rawDesignList.append({'TRACK_ID': outNameRaw + ".F1R2.bw", 'INDIVIDUAL_ID': individual,
-                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Forward",
-                              "Condition-Strand": condition + "-Forward"})
 
-        tempPyRangesRaw.to_bigwig(path = outRawStringRev, value_col="Reverse_Depth")
-        rawDesignList.append({'TRACK_ID': outNameRaw + ".F2R1.bw", 'INDIVIDUAL_ID': individual,
-                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
-                              'Condition-Strand': condition + "-Reverse"})
+        if(len(tempPyRangesRaw) > 0):
+            tempPyRangesRaw.to_bigwig(path = outRawString, value_col="Depth")
+            #pdb.set_trace()
+            rawDesignList.append({'TRACK_ID': outNameRaw + ".bw", 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand': "Both",
+                                  'Condition-Strand': 'NA'})
+            tempPyRangesRaw.to_bigwig(path = outRawStringFor, value_col="Forward_Depth")
+            rawDesignList.append({'TRACK_ID': outNameRaw + ".F1R2.bw", 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Forward",
+                                  "Condition-Strand": condition + "-Forward"})
 
-        tempPyRangesRaw.to_bigwig(path = outRawStringDiff, value_col="LogFC_Diff_Strand")
-        rawDesignList.append({'TRACK_ID': outNameRaw + ".StrandDiff.bw", 'INDIVIDUAL_ID': individual,
-                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"LogFC",
-                              'Condition-Strand': "NA"})
+            tempPyRangesRaw.to_bigwig(path = outRawStringRev, value_col="Reverse_Depth")
+            rawDesignList.append({'TRACK_ID': outNameRaw + ".F2R1.bw", 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
+                                  'Condition-Strand': condition + "-Reverse"})
+
+            tempPyRangesRaw.to_bigwig(path = outRawStringDiff, value_col="LogFC_Diff_Strand")
+            rawDesignList.append({'TRACK_ID': outNameRaw + ".StrandDiff.bw", 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"LogFC",
+                                  'Condition-Strand': "NA"})
 
 
-        tempPyRangesNorm = pr.PyRanges(outGroupNorm)
-        outNormString = str(outDirNorm / (outNameNorm + ".bw"))
-        tempPyRangesNorm.to_bigwig(path = outNormString, value_col="Norm Depth")
-        normDesignList.append({'TRACK_ID': outNameNorm + ".bw", 'INDIVIDUAL_ID': individual,
-                              'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Both"})
+            tempPyRangesNorm = pr.PyRanges(outGroupNorm)
+            outNormString = str(outDirNorm / (outNameNorm + ".bw"))
+            tempPyRangesNorm.to_bigwig(path = outNormString, value_col="Norm Depth")
+            normDesignList.append({'TRACK_ID': outNameNorm + ".bw", 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Both"})
 
 
     outRawDesignDF = pd.DataFrame(rawDesignList)
