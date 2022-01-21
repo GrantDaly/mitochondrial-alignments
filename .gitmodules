@@ -1,0 +1,3 @@
+[submodule "cpp/seqan3"]
+	path = cpp/seqan3
+	url = https://github.com/seqan/seqan3.git
