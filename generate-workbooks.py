@@ -126,7 +126,8 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
             #outGroupRawAll['Percent_Diff_Strand'] = ((outGroupRawAll['Forward_Depth'] - outGroupRawAll['Reverse_Depth']) /  outGroupRawAll['Reverse_Depth']) * 100
             #pdb.set_trace()
             outGroupRawAll['LogFC_Diff_Strand'] = np.log2((outGroupRawAll['Forward_Depth'] + 1) /  (outGroupRawAll['Reverse_Depth'] + 1))
-
+            if((outGroupRawAll['LogFC_Diff_Strand'] == 0).all()):
+                continue
             #outGroup.to_csv(outDirRaw / (outNameRaw + ".bg"), sep="\t", index=False, header=False)
 
             outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Norm Depth"]]
@@ -154,7 +155,6 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
             rawDesignList.append({'TRACK_ID': outNameRaw + ".F2R1.bw", 'INDIVIDUAL_ID': individual,
                                   'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
                                   'Condition-Strand': condition + "-Reverse"})
-
             tempPyRangesRaw.to_bigwig(path = outRawStringDiff, value_col="LogFC_Diff_Strand")
             rawDesignList.append({'TRACK_ID': outNameRaw + ".StrandDiff.bw", 'INDIVIDUAL_ID': individual,
                                   'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"LogFC",
@@ -170,7 +170,6 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
 
     outRawDesignDF = pd.DataFrame(rawDesignList)
     outRawDesignDF['DATA_Type'] = "Expression"
-
     outRawDesignDF.loc[:,["TRACK_ID", "DATA_Type", "INDIVIDUAL_ID", "SAMPLE_ID", "Condition","Strand","Condition-Strand"]]\
                              .to_csv(outDirRaw / "raw-attributes.txt", sep="\t", index=None)
 
