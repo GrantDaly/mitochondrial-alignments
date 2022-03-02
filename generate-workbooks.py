@@ -112,7 +112,7 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
         designEntry = designDF.query('Sample == @name')
         individual = designEntry['Individual ID'].to_list()[0]
         sampleName = designEntry['Sample'].to_list()[0]
-        condition = designEntry['Condition'].to_list()[0]
+        condition = str(designEntry['Condition'].to_list()[0])
 
         outGroup = group.copy().reset_index(drop=True)
         outGroup['Start'] = outGroup['Offset']
@@ -133,7 +133,8 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
             #outGroupRawAll['Percent_Diff_Strand'] = ((outGroupRawAll['Forward_Depth'] - outGroupRawAll['Reverse_Depth']) /  outGroupRawAll['Reverse_Depth']) * 100
             #pdb.set_trace()
             outGroupRawAll['LogFC_Diff_Strand'] = np.log2((outGroupRawAll['Forward_Depth'] + 1) /  (outGroupRawAll['Reverse_Depth'] + 1))
-
+            if((outGroupRawAll['LogFC_Diff_Strand'] == 0).all()):
+                continue
             #outGroup.to_csv(outDirRaw / (outNameRaw + ".bg"), sep="\t", index=False, header=False)
 
             outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Norm Depth"]]
@@ -161,7 +162,6 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
             rawDesignList.append({'TRACK_ID': outNameRaw + ".F2R1.bw", 'INDIVIDUAL_ID': individual,
                                   'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
                                   'Condition-Strand': condition + "-Reverse"})
-
             tempPyRangesRaw.to_bigwig(path = outRawStringDiff, value_col="LogFC_Diff_Strand")
             rawDesignList.append({'TRACK_ID': outNameRaw + ".StrandDiff.bw", 'INDIVIDUAL_ID': individual,
                                   'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"LogFC",
@@ -177,7 +177,6 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
 
     outRawDesignDF = pd.DataFrame(rawDesignList)
     outRawDesignDF['DATA_Type'] = "Expression"
-
     outRawDesignDF.loc[:,["TRACK_ID", "DATA_Type", "INDIVIDUAL_ID", "SAMPLE_ID", "Condition","Strand","Condition-Strand"]]\
                              .to_csv(outDirRaw / "raw-attributes.txt", sep="\t", index=None)
 
@@ -381,7 +380,11 @@ if __name__ == "__main__":
     normNumtDepth = normNumtDepth.rename(columns={"Mean": "NUMT Mean"})
 
     normMitoStatsDF = normMitoStatsDF.merge(normNumtDepth, on="Sample")
-    normMitoStatsDF['Norm Mean'] = normMitoStatsDF['Mean'] / normMitoStatsDF['NUMT Mean'] 
+    normMitoStatsDF['Norm Mean'] = normMitoStatsDF['Mean'] / normMitoStatsDF['NUMT Mean']
+    if('Concentration' in designDF.columns):
+        normMitoStatsDF = normMitoStatsDF.merge(designDF.loc[:,['Sample', 'Concentration']], on="Sample", how="left")
+        normMitoStatsDF['Norm Mean Conc.'] = normMitoStatsDF['Norm Mean'] * normMitoStatsDF['Concentration']
+        normMitoStatsDF = normMitoStatsDF.drop(columns="Concentration")
 
 
     # replace the mitochondrial df with the updated one
@@ -394,13 +397,31 @@ if __name__ == "__main__":
         rawCovDF = rawCovDF.merge(normNumtDepth, how="left", on="Sample")
         if("Depth" in rawCovDF.columns):
             rawCovDF['Norm Depth'] = rawCovDF['Depth'] / rawCovDF['NUMT Mean']
+
+
+            if('Concentration' in designDF.columns):
+                rawCovDF = rawCovDF.merge(designDF.loc[:,['Sample', 'Concentration']], on="Sample", how="left")
+                rawCovDF['Norm Depth Conc.'] = rawCovDF['Norm Depth'] * rawCovDF['Concentration']
+                rawCovDF = rawCovDF.drop(columns="Concentration")
+
             # for the 1bp resolution set, I just want to list the start position
             rawCovDF['Position'] = rawCovDF["Offset"] + 1
             
-            collapsedCovDF = rawCovDF.pivot(index=["Position"],columns="Sample",values=['Forward_Depth', 'Reverse_Depth', 'Depth', 'Norm Depth'])
+            if('Concentration' in designDF.columns):
+
+                collapsedCovDF = rawCovDF.pivot(index=["Position"],columns="Sample",values=['Forward_Depth', 'Reverse_Depth', 'Depth', 'Norm Depth', 'Norm Depth Conc.'])
+            else:
+                collapsedCovDF = rawCovDF.pivot(index=["Position"],columns="Sample",values=['Forward_Depth', 'Reverse_Depth', 'Depth', 'Norm Depth'])
             
         elif("Mean Depth" in rawCovDF.columns):
             rawCovDF['Norm Depth'] = rawCovDF['Mean Depth'] / rawCovDF['NUMT Mean']
+
+
+            if('Concentration' in designDF.columns):
+                rawCovDF = rawCovDF.merge(designDF.loc[:,['Sample', 'Concentration']], on="Sample", how="left")
+                rawCovDF['Norm Mean Conc.'] = rawCovDF['Norm Depth'] * rawCovDF['Concentration']
+                rawCovDF = rawCovDF.drop(columns="Concentration")
+
             
             collapsedCovDF = rawCovDF.pivot(index=["Chromosome", "Start", "End","Name"],columns="Sample",values=['Mean Depth', 'Norm Depth'])
 
