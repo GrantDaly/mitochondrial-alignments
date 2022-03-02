@@ -1,0 +1,5 @@
+{"groups": 
+[{"name": "Mitochondria", "positions": "full", "inserts":"include"},
+ {"name": "NUMT", "positions": "aggregate", "inserts": "include"}],
+"normalization": {"mitochondrial-name": "Mitochondria", "numt-name": "NUMT"}
+}

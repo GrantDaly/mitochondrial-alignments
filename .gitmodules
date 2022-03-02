@@ -1,3 +1,7 @@
 [submodule "cpp/seqan3"]
 	path = cpp/seqan3
 	url = https://github.com/seqan/seqan3.git
+
+[submodule "cpp/hts-wrapper"]
+	path = cpp/hts-wrapper
+	url = https://github.com/GrantDaly/hts-wrapper.git

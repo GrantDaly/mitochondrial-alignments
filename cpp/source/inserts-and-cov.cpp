@@ -1,12 +1,16 @@
 
+//#include <bits/getopt_ext.h>
+#include "seqan3/argument_parser/argument_parser.hpp"
+#include "seqan3/argument_parser/validators.hpp"
 #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <stdlib.h>
-#include <getopt.h>
+//#include <getopt.h>
 
 #include <bits/stdc++.h>
-#include <bits/getopt_ext.h>
+//#include <bits/getopt_ext.h>
+//#include <getopt-gnu.h
 
 #include <htslib/hts.h>
 #include <htslib/bgzf.h>
@@ -18,6 +22,9 @@
 
 #include <algorithm>
 #include <cmath>
+
+#include <seqan3/argument_parser/all.hpp>
+#include <seqan3/core/debug_stream.hpp>
 namespace fs = std::filesystem;
 struct Bed{
   std::string chrom;
@@ -48,17 +55,17 @@ int cmpfunc (const void * a, const void * b) {
    else if (*(double*)a < *(double*)b) return -1;
    else return 0;
 }
-void PrintHelp(){
-std::cout <<
-	   "--bed or -b Input Bed file\n"
-	   "--prefix or -p Prefix for output\n"
-           "--bam or -s (for sam) for alignments\n"
-           "--outDir or -d for output directory\n"
--           "--name or -n for sample name\n"
-           "--help or -h Print help\n";
- exit(1);
+// void PrintHelp(){
+// std::cout <<
+// 	   "--bed or -b Input Bed file\n"
+// 	   "--prefix or -p Prefix for output\n"
+//            "--bam or -s (for sam) for alignments\n"
+//            "--outDir or -d for output directory\n"
+// -           "--name or -n for sample name\n"
+//            "--help or -h Print help\n";
+//  exit(1);
 
-}
+// }
 
 int readFilter(bam1_t *inRead){
   //picking reads that are leftmost so pos + insert
@@ -91,72 +98,95 @@ void updateCovArray(int inArray[], long long int start, long long int end){
   }
 }
 
+//void initialize_arg_parser(
 int main(int argc, char* argv[]){
   std::string filePrefix;
   std::string bedName;
   std::string bamName;
   std::string sampleName;
   std::string outDirectoryName;
-  
-  const char* const short_opts = "p:b:s:d:h";
-  const option long_opts[] = {	
-    {"prefix", required_argument, nullptr, 'p'},
-    {"bed", required_argument, nullptr, 'b'},
-    {"bam", required_argument, nullptr, 's'},
-    {"name", required_argument, nullptr, 'n'},
-    {"outDir", required_argument, nullptr, 'd'},
-    {"help", no_argument, nullptr, 'h'},
-    {0,0,0,0}
-  };
 
+  seqan3::argument_parser arg_parser{"Inserts-and-Coverage", argc, argv, seqan3::update_notifications::off};
 
-   while(true){
-     const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
-     if(opt == -1){
-       break;
-     }
-     switch(opt)
-       {
-       case 'p':
-	 filePrefix = std::string(optarg);
-	 break;
-       case 'b':
-	 bedName = std::string(optarg);
-	 break;
-       case 's':
-	 bamName = std::string(optarg);
-	 break;
-       case 'n':
-	 sampleName = std::string(optarg);
-	 break;
-       case 'd':
-	 outDirectoryName = std::string(optarg);
-	 break;
-       case 'h':
-	 PrintHelp();
-	 break;
-       default:
-	 PrintHelp();
-	 break;
-       }
+  arg_parser.add_option(filePrefix, 'p', "prefix", "Prefix",
+			seqan3::option_spec::required);
+  arg_parser.add_option(bedName, 'b', "bed", "Bed file name (bed must be 6 column format",
+			seqan3::option_spec::required, seqan3::input_file_validator{{"bed"}});
+  arg_parser.add_option(bamName, 's', "bam", "Bam file name",
+			seqan3::option_spec::required, seqan3::input_file_validator{{"bam"}});
+  arg_parser.add_option(sampleName, 'n', "name", "Sample name",
+			seqan3::option_spec::required);
+  arg_parser.add_option(outDirectoryName, 'd', "outDir", "Output directory name",
+			seqan3::option_spec::required, seqan3::output_directory_validator{});
+
+  try
+    {
+         arg_parser.parse();                                                  // trigger command line parsing
     }
+    catch (seqan3::argument_parser_error const & ext)                     // catch user errors
+    {
+        seqan3::debug_stream << "[Error parsing arguments] " << ext.what() << "\n"; // customise your error message
+        return -1;
+    }
+  // const char* const short_opts = "p:b:s:d:h";
+  // const option long_opts[] = {	
+  //   {"prefix", required_argument, nullptr, 'p'},
+  //   {"bed", required_argument, nullptr, 'b'},
+  //   {"bam", required_argument, nullptr, 's'},
+  //   {"name", required_argument, nullptr, 'n'},
+  //   {"outDir", required_argument, nullptr, 'd'},
+  //   {"help", no_argument, nullptr, 'h'},
+  //   {0,0,0,0}
+  // };
+
+
+  //  while(true){
+  //    const auto opt = getopt_long(argc, argv, short_opts, long_opts, nullptr);
+  //    if(opt == -1){
+  //      break;
+  //    }
+  //    switch(opt)
+  //      {
+  //      case 'p':
+  // 	 filePrefix = std::string(optarg);
+  // 	 break;
+  //      case 'b':
+  // 	 bedName = std::string(optarg);
+  // 	 break;
+  //      case 's':
+  // 	 bamName = std::string(optarg);
+  // 	 break;
+  //      case 'n':
+  // 	 sampleName = std::string(optarg);
+  // 	 break;
+  //      case 'd':
+  // 	 outDirectoryName = std::string(optarg);
+  // 	 break;
+  //      case 'h':
+  // 	 PrintHelp();
+  // 	 break;
+  //      default:
+  // 	 PrintHelp();
+  // 	 break;
+  //      }
+  //   }
    // check for required parameters
-   if(filePrefix == ""){
-     std::cerr << "no output prefix provided" << std::endl;
-     exit(1);
-   }
-   if(bedName == ""){
-     std::cerr << "no bed file provided" << std::endl;
-     exit(1);
-   }
-   if(bamName == ""){
-     std::cerr << "no bam file provided" << std::endl;
-     exit(1);
-   }
-   if(sampleName == ""){
-     std::cerr << "no sample name provided" << std::endl;
-     exit(1);
-   }
+   // if(filePrefix == ""){
+   //   std::cerr << "no output prefix provided" << std::endl;
+   //   exit(1);
+   // }
+   // if(bedName == ""){
+   //   std::cerr << "no bed file provided" << std::endl;
+   //   exit(1);
+   // }
+   // if(bamName == ""){
+   //   std::cerr << "no bam file provided" << std::endl;
+   //   exit(1);
+   // }
+   // if(sampleName == ""){
+   //   std::cerr << "no sample name provided" << std::endl;
+   //   exit(1);
+   // }
 
    // iterate through bed file
    std::ifstream inBed;
@@ -182,7 +212,9 @@ int main(int argc, char* argv[]){
    
    fs::path outCovName{sampleName + "." + filePrefix + ".coverage.tsv"};
    outCovFile.open(outDirectory / coverageDir / outCovName  , std::ios::out);
-   outCovFile << "Chromosome\tStart\tEnd\tName\tScore\tStrand\tSample\tOffset\tForward_Depth\tReverse_Depth\tDepth" << std::endl;
+   // todo: add columns for number of start and number of ends (forward and reverse)
+   outCovFile << "Chromosome\tStart\tEnd\tName\tScore\tStrand\tSample\tOffset\tForward_Depth\t" <<
+     "Reverse_Depth\tDepth\tForward_Starts\tForward_Ends\tReverse_Starts\tReverse_Ends" << std::endl;
    std::vector<int> covVec;
 
    std::ofstream outInsertHistFile;
@@ -225,9 +257,22 @@ int main(int argc, char* argv[]){
      auto intervalLength = end - start + 1;
      int FoneRtwo[intervalLength];
      int FtwoRone[intervalLength];
+
+     int FoneRtwoStarts[intervalLength];
+     int FoneRtwoEnds[intervalLength];
+
+     int FtwoRoneStarts[intervalLength];
+     int FtwoRoneEnds[intervalLength];
+     
      for(auto i=0; i < intervalLength; i++){
        FoneRtwo[i] = 0;
        FtwoRone[i] = 0;
+
+       FoneRtwoStarts[i] = 0;
+       FoneRtwoEnds[i] = 0;
+
+       FtwoRoneStarts[i] = 0;
+       FtwoRoneEnds[i] = 0;
      }
 
      // make a vector of vectors
@@ -278,12 +323,17 @@ int main(int argc, char* argv[]){
 	// coverages 
       if(strandReturn == 1){
 	updateCovArray(FoneRtwo, covArrayStart, covArrayEnd);
+	FoneRtwoStarts[covArrayStart] += 1;
+        FoneRtwoEnds[covArrayEnd] += 1;
 
 	// forward orientation, so start is leftmost
 	binInsertVecs[covArrayStart / insertVecBinSize].push_back(absInsert);
       }
       else if(strandReturn == 2){
 	updateCovArray(FtwoRone, covArrayStart, covArrayEnd);
+	// since I care about beginning of fragment vs. end, need to flip start and end.
+	FtwoRoneStarts[covArrayEnd] += 1;
+        FtwoRoneEnds[covArrayStart] += 1;
 
 	// reverse orientation, so start is rightmost
 	binInsertVecs[covArrayEnd / insertVecBinSize].push_back(absInsert);
@@ -318,7 +368,9 @@ int main(int argc, char* argv[]){
     outCovFile << bedLine.chrom << "\t" << bedLine.start << "\t" << bedLine.end << "\t" <<
       bedLine.name << "\t" << bedLine.score << "\t" << bedLine.strand << "\t" <<
       sampleName << "\t" << offset << "\t" <<     
-      FoneRtwo[offset] << "\t" << FtwoRone[offset] << "\t" << fullCoverage << std::endl;
+      FoneRtwo[offset] << "\t" << FtwoRone[offset] << "\t" << fullCoverage << "\t" <<
+      FoneRtwoStarts[offset] << "\t" << FoneRtwoEnds[offset] << "\t"
+	       << FtwoRoneStarts[offset] << "\t" << FtwoRoneEnds[offset]  << std::endl;
   }
   // writing interval binned inserts to file
   for(int binNum=0; binNum < numberInsertBins; binNum++){

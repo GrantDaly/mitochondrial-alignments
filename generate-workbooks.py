@@ -17,7 +17,7 @@ import requests
 
 def getRawCoverageDF(bedPrefix, inputDir, aggregate=False):
     covGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".coverage.tsv")
-    #pdb.set_trace()
+    
     covDtypes = {
     "Chromosome":"object",
     "Start":"int64",
@@ -29,12 +29,19 @@ def getRawCoverageDF(bedPrefix, inputDir, aggregate=False):
     "Offset":"int64",
     "Forward_Depth": "int64",
     "Reverse_Depth": "int64",
-        "Depth":"int64"}
+        "Depth":"int64",
+        "Forward_Starts": "int64",
+	"Forward_Ends": "int64",
+	"Reverse_Starts": "int64",
+        "Reverse_Ends": "int64"
+    }
 
     coverageList = []
     
     for filename in covGlob:
+        
         tempCovDF = pd.read_csv(filename, sep="\t", dtype=covDtypes)
+        
         if(aggregate == True):
             
             tempCovDF = tempCovDF.groupby(["Name", "Chromosome", "Start", "End", "Strand","Score","Sample"])["Depth"].agg('sum').reset_index()

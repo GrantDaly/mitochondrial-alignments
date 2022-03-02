@@ -1,0 +1,3 @@
+Sample	Individual ID	Time	Batch	Enrichment	Condition	starting-ng	starting-uL	raw_read_count
+C17	IndOne	0	FSU	Enriched	Trauma	3	5	6000000
+S9	IndTwo	0	UMMC	Enriched	Trauma	4	5	3000000
