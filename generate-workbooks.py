@@ -128,7 +128,7 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
 
             # only outputting bigwigs for now.
 
-            outGroupRawAll = outGroup.loc[:, ["Chromosome", "Start", "End", "Depth", "Forward_Depth", "Reverse_Depth"]]
+            outGroupRawAll = outGroup.loc[:, ["Chromosome", "Start", "End", "Depth", "Forward_Depth", "Reverse_Depth", "Forward_Starts","Forward_Ends","Reverse_Starts","Reverse_Ends"]]
 
             #outGroupRawAll['Percent_Diff_Strand'] = ((outGroupRawAll['Forward_Depth'] - outGroupRawAll['Reverse_Depth']) /  outGroupRawAll['Reverse_Depth']) * 100
             #pdb.set_trace()
@@ -145,6 +145,13 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
             outRawString = str(outDirRaw / (outNameRaw + ".bw"))
             outRawStringFor = str(outDirRaw / (outNameRaw + ".F1R2.bw"))
             outRawStringRev = str(outDirRaw / (outNameRaw + ".F2R1.bw"))
+
+            outRawStringForStart = str(outDirRaw / (outNameRaw + ".F1R2-Start.bw"))
+            outRawStringRevStart = str(outDirRaw / (outNameRaw + ".F2R1-Start.bw"))
+
+            outRawStringForEnd = str(outDirRaw / (outNameRaw + ".F1R2-End.bw"))
+            outRawStringRevEnd = str(outDirRaw / (outNameRaw + ".F2R1-End.bw"))
+            
             outRawStringDiff = str(outDirRaw / (outNameRaw + ".StrandDiff.bw"))
 
         
@@ -162,6 +169,27 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
             rawDesignList.append({'TRACK_ID': outNameRaw + ".F2R1.bw", 'INDIVIDUAL_ID': individual,
                                   'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
                                   'Condition-Strand': condition + "-Reverse"})
+
+            tempPyRangesRaw.to_bigwig(path = outRawStringForStart, value_col="Forward_Starts")
+            rawDesignList.append({'TRACK_ID': outRawStringForStart, 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Forward",
+                                  "Condition-Strand": condition + "-For-Starts"})
+
+            tempPyRangesRaw.to_bigwig(path = outRawStringRevStart, value_col="Reverse_Starts")
+            rawDesignList.append({'TRACK_ID': outRawStringRevStart, 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
+                                  'Condition-Strand': condition + "-Rev-Starts"})
+
+            tempPyRangesRaw.to_bigwig(path = outRawStringForEnd, value_col="Forward_Ends")
+            rawDesignList.append({'TRACK_ID': outRawStringForEnd, 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Forward",
+                                  "Condition-Strand": condition + "-For-Ends"})
+
+            tempPyRangesRaw.to_bigwig(path = outRawStringRevEnd, value_col="Reverse_Ends")
+            rawDesignList.append({'TRACK_ID': outRawStringRevEnd, 'INDIVIDUAL_ID': individual,
+                                  'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"Reverse",
+                                  'Condition-Strand': condition + "-Rev-Ends"})
+            
             tempPyRangesRaw.to_bigwig(path = outRawStringDiff, value_col="LogFC_Diff_Strand")
             rawDesignList.append({'TRACK_ID': outNameRaw + ".StrandDiff.bw", 'INDIVIDUAL_ID': individual,
                                   'SAMPLE_ID': sampleName, 'Condition': condition, 'Strand':"LogFC",

@@ -14,7 +14,7 @@ docker push gdaly9000/mitochondrial
 
 # run tests for workbook generation
  python generate-workbooks.py \
--p tests/post-test/parameters.json \
--m tests/post-test/design.tsv \
+-p tests/parameters.json \
+-m tests/design.tsv \
 -i tests/raw-postprocess/ -o tests/post-test/ \
 -n test --regenfiles
