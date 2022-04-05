@@ -1,0 +1,16 @@
+# add seqan3 as submodule
+git submodule add https://github.com/seqan/seqan3.git
+
+# initialize submodules recursively
+git submodule update --init --recursive
+
+# compile
+ cmake -DCMAKE_BUILD_TYPE=Debug ../source
+
+# assuming the hts-wrapper is already built
+cmake -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include" ../source/ && cmake --build .
+
+
+# gdb testing
+run -b ../tests/mpileup-inputs/sim-variant.bam -r ../tests/mpileup-inputs/susScr11.mito.fa
+run -b ../tests/mpileup-inputs/sim-artifact.bam -r ../tests/mpileup-inputs/susScr11.mito.fa -o test.tsv

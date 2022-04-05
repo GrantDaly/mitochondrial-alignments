@@ -28,8 +28,11 @@ make && make install && \
 cd ~ && rm -r htslib samtools bcftools
 
 ADD cpp /cpp/
-RUN ldconfig && \
-g++ --std=c++20 -g -Wall -O3 -o inserts-and-cov /cpp/inserts-and-cov.cpp \
-`pkg-config --cflags gsl htslib` `pkg-config --libs gsl htslib` && rm -r cpp/ && \
-cp inserts-and-cov /usr/local/bin
+RUN apt-get upgrade -y && \
+apt-get install -y cmake && \
+mkdir build && cd build && \
+cmake /cpp/source  && \
+cmake --build . && \
+rm -r /cpp/ && \
+mv inserts-and-cov /usr/local/bin
 
