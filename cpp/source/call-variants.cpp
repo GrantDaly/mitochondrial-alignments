@@ -98,6 +98,49 @@ struct mpileup_params_t {
 //     const mplp_conf_t *conf;
 // } mplp_aux_t;
 
+// int bam_mplp64_auto_test(bam_mplp_t iter, int *_tid, hts_pos_t *_pos, int *n_plp, const bam_pileup1_t **plp)
+// {
+//     int i, ret = 0;
+//     hts_pos_t new_min_pos = HTS_POS_MAX;
+//     uint32_t new_min_tid = (uint32_t)-1;
+//     for (i = 0; i < iter->n; ++i) {
+//         if (iter->pos[i] == iter->min_pos && iter->tid[i] == iter->min_tid) {
+//             int tid;
+//             hts_pos_t pos;
+//             iter->plp[i] = bam_plp64_auto(iter->iter[i], &tid, &pos, &iter->n_plp[i]);
+//             if ( iter->iter[i]->error ) return -1;
+//             if (iter->plp[i]) {
+//                 iter->tid[i] = tid;
+//                 iter->pos[i] = pos;
+//             } else {
+//                 iter->tid[i] = 0;
+//                 iter->pos[i] = 0;
+//             }
+//         }
+//         if (iter->plp[i]) {
+//             if (iter->tid[i] < new_min_tid) {
+//                 new_min_tid = iter->tid[i];
+//                 new_min_pos = iter->pos[i];
+//             } else if (iter->tid[i] == new_min_tid && iter->pos[i] < new_min_pos) {
+//                 new_min_pos = iter->pos[i];
+//             }
+//         }
+//     }
+//     iter->min_pos = new_min_pos;
+//     iter->min_tid = new_min_tid;
+//     if (new_min_pos == HTS_POS_MAX) return 0;
+//     *_tid = new_min_tid; *_pos = new_min_pos;
+//     for (i = 0; i < iter->n; ++i) {
+//         if (iter->pos[i] == iter->min_pos && iter->tid[i] == iter->min_tid) {
+//             n_plp[i] = iter->n_plp[i], plp[i] = iter->plp[i];
+//             ++ret;
+//         } else n_plp[i] = 0, plp[i] = 0;
+//     }
+//     return ret;
+// }
+
+
+
 static int mplp_func(void *data, bam1_t *b)
 {
   
@@ -106,17 +149,45 @@ static int mplp_func(void *data, bam1_t *b)
   int ret, skip = 0;
     // hts_pos_t ref_len;
 
-    do {
-        int has_ref;
-        ret = plp_data->iter? sam_itr_next(plp_data->fp, plp_data->iter, b) : sam_read1(plp_data->fp, plp_data->header, b);
-        if (ret < 0) break;
-    //     // The 'B' cigar operation is not part of the specification, considering as obsolete.
-    //     //  bam_remove_B(b);
-        if (b->core.tid < 0 || (b->core.flag&BAM_FUNMAP)) { // exclude unmapped reads
-            skip = 1;
-            continue;
-        }
+  do {
+  	if(plp_data->iter){
+	  // std::cout << "Has iterator" << std::endl;
+	  // std::cout << "Bam Position " << b->core.pos << std::endl;
+	  ret = sam_itr_next(plp_data->fp, plp_data->iter, b);
+	  // std::cout << "Return value " << ret << std::endl;
+	    }
+	else
+	  {
+	    // std::cout << "Does Not Have Iterator" << std::endl;
+	    ret = sam_read1(plp_data->fp, plp_data->header, b);
+	  }
 
+	if (ret < 0) break;
+	// for some reason reads are being incorrectly marked as unmapped. flag&BMA_FUNMAP = 4
+	// for now I'm going to remove this check.
+	// if (b->core.tid < 0 || (b->core.flag&BAM_FUNMAP)) { // exclude unmapped reads
+	//   std::cout << "tid " << b->core.tid << std::endl;
+	  
+	//   std::cout << "unmap flag " << (b->core.flag&BAM_FUNMAP) << std::endl;
+        //     skip = 1;
+        //     continue;
+        // }
+    } while (skip > 0);
+    // std::cout << "Returning with this value " << ret << std::endl;
+    return ret;
+    // do {
+    //     int has_ref;
+    //     // ret = plp_data->iter? sam_itr_next(plp_data->fp, plp_data->iter, b) : sam_read1(plp_data->fp, plp_data->header, b);
+    // 	// std::cout << "Bam Return Value " << ret << std::endl;
+    //     if (ret < 0) break;
+    // //     // The 'B' cigar operation is not part of the specification, considering as obsolete.
+    // //     //  bam_remove_B(b);
+    //     if (b->core.tid < 0 || (b->core.flag&BAM_FUNMAP)) { // exclude unmapped reads
+    //         skip = 1;
+    //         continue;
+    //     }
+    // 
+}
 	// todo; filter by read1, read2 if necessary. May be able to deal with this in the pileup processing function
     //     if (ma->conf->rflag_require && !(ma->conf->rflag_require&b->core.flag)) { skip = 1; continue; }
     //     if (ma->conf->rflag_filter && ma->conf->rflag_filter&b->core.flag) { skip = 1; continue; }
@@ -157,9 +228,7 @@ static int mplp_func(void *data, bam1_t *b)
     //     }
     //     if (b->core.qual < ma->conf->min_mq) skip = 1;
     //     else if ((ma->conf->flag&MPLP_NO_ORPHAN) && (b->core.flag&BAM_FPAIRED) && !(b->core.flag&BAM_FPROPER_PAIR)) skip = 1;
-    } while (skip);
-    return ret;
-}
+
 
 /*
  * Performs pileup
@@ -294,7 +363,7 @@ int main(int argc, char * argv[]){
     bam_mplp_t iter;
     sam_hdr_t *h = NULL; /* header of first file in input list */
     char *ref;
-
+    bool REGION = true;
     // faidx_t* fasta_idx = fai_load(params.refName.c_str());
     faidx_t* fasta_idx = fai_load3_format(params.refName.c_str(),
 					  nullptr, nullptr, 0, FAI_FASTA);
@@ -337,12 +406,22 @@ int main(int argc, char * argv[]){
     if (idx == nullptr){
       std::cerr << "Could Not Open Bam Index" << std::endl; 
     }
+
+    if(REGION){
+    // if ( (data[i]->iter=sam_itr_queryi(idx, 18, 1000, 6000)) == 0){
+    // going to try not using an iterator, so It goes through all reads
+    
     if ( (data[i]->iter=sam_itr_querys(idx, bam_hdr, params.regionString.c_str())) == 0){
       std::cerr << "Could not parse region" << std::endl;
       exit(1);
     }
+    // std::cout << "Iter Start " <<  data[i]->iter->beg << " End " << data[i]->iter->end << std::endl;
 
     if (i == 0) beg0 = data[i]->iter->beg, end0 = data[i]->iter->end, tid0 = data[i]->iter->tid;
+    }
+    else {
+      data[i]->iter = NULL;
+    }
     // for some reason the samtools version only stores first header. I'm going to try loading each header
     data[i]->header = bam_hdr;
 }
@@ -364,17 +443,21 @@ int main(int argc, char * argv[]){
     // ref = fai_parse_region(fasta_idx, mtTid, 0, mtLength, int flags)
     // init pileup
   iter = bam_mplp_init(n_samples, mplp_func, (void**)data);
-  bam_mplp_init_overlaps(iter);
-  bam_mplp_set_maxcnt(iter, max_depth);
+
+  // commenting these out for debugging
+  // bam_mplp_init_overlaps(iter);
+  // bam_mplp_set_maxcnt(iter, max_depth);
 
   // int last_tid = -1;
   // hts_pos_t last_pos = -1;
 
     // iterate through pileup
-  int ret = -1;
-  
-  while ( (ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp)) > 0) {
-    
+  int ret = 0;
+  ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp);
+  // while ( (ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp)) > 0) {
+  while( ret > 0) {
+    //std::cout << "Current return value " << ret << std::endl;
+    std::cout << "Position " << pos << std::endl;
     // todo: check if in region
     if( (tid != mtTid) || (pos < 0) || (pos >= mtLength) ){
       // continue or break / exit? Samtools continues here
@@ -393,6 +476,7 @@ int main(int argc, char * argv[]){
       char refBase = ref[pos];
       SampleBasePileup samplePileup = SampleBasePileup(pos +1, params.regionString, refBase);
       for( int j = 0; j < n_plp[i]; j++){
+	// std::cout << "Current # of pileups " << n_plp[i] << std::endl;
 
 	const bam_pileup1_t *tempPileup = plp[i] + j;
         // int baseChar = tempPileup->qpos < tempPileup->b->core.l_qseq
@@ -401,7 +485,8 @@ int main(int argc, char * argv[]){
 	// if (baseChar - 33 >= minBaseQ) {
 	    // from here I will process the pileup of this base.
     	    // Samtools passes ref and reflenth here
-	  
+
+	// std::cout << "Processing Pileup" << std::endl;
 	if(process_pileup(tempPileup ,pos, & params, samplePileup) <  0) {
 	      std::cerr << "Error processing pileup" << std::endl;
 	    }
@@ -412,7 +497,10 @@ int main(int argc, char * argv[]){
       outFile << samplePileup;
 
     }
+    ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp);
   }
+  std::cout << "Final return value " << ret << std::endl;
   outFile.close();
+  bam_mplp_destroy(iter);
   return 0;
 }
