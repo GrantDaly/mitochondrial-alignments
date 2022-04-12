@@ -444,20 +444,21 @@ int main(int argc, char * argv[]){
     // init pileup
   iter = bam_mplp_init(n_samples, mplp_func, (void**)data);
 
-  // commenting these out for debugging
-  // bam_mplp_init_overlaps(iter);
-  // bam_mplp_set_maxcnt(iter, max_depth);
+  bam_mplp_init_overlaps(iter);
+  bam_mplp_set_maxcnt(iter, max_depth);
 
   // int last_tid = -1;
   // hts_pos_t last_pos = -1;
 
     // iterate through pileup
   int ret = 0;
-  ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp);
-  // while ( (ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp)) > 0) {
-  while( ret > 0) {
+  //ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp);
+  while ( (ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp)) > 0) {
+    //while( ret > 0) {
     //std::cout << "Current return value " << ret << std::endl;
-    std::cout << "Position " << pos << std::endl;
+    if ( (pos % 1000) == 0){
+    std::cout << "Position " << pos + 1<< std::endl;
+    }
     // todo: check if in region
     if( (tid != mtTid) || (pos < 0) || (pos >= mtLength) ){
       // continue or break / exit? Samtools continues here
@@ -497,9 +498,9 @@ int main(int argc, char * argv[]){
       outFile << samplePileup;
 
     }
-    ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp);
+    //ret=bam_mplp64_auto(iter, &tid, &pos, n_plp, plp);
   }
-  std::cout << "Final return value " << ret << std::endl;
+  
   outFile.close();
   bam_mplp_destroy(iter);
   return 0;
