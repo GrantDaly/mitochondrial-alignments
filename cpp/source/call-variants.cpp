@@ -300,7 +300,8 @@ void parse_arguments(mpileup_params_t & params, int argc, char * argv[]) {
 
   std::filesystem::path inBamName{};
   myparser.add_option(inBamName,'b',"bam","The input bam file.",
-                        seqan3::option_spec::standard, seqan3::input_file_validator{{"bam"}});
+                        seqan3::option_spec::standard);
+                        // seqan3::option_spec::standard, seqan3::input_file_validator{{"bam"}});
 
   
   std::filesystem::path inFastaName{}; 
