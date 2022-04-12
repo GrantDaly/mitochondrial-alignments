@@ -1,4 +1,4 @@
-FROM debian:bullseye
+FROM debian
 
 ENV PATH /root/miniconda3/bin:$PATH
 RUN apt-get update -y && apt-get install -y wget && \
@@ -34,5 +34,7 @@ mkdir build && cd build && \
 cmake /cpp/source  && \
 cmake --build . && \
 rm -r /cpp/ && \
-mv inserts-and-cov /usr/local/bin
+mv inserts-and-cov /usr/local/bin && \
+mv call-variants /usr/local/bin && \
+apt-get remove -y cmake
 

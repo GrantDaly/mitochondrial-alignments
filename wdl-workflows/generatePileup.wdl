@@ -13,6 +13,7 @@ workflow GeneratePileup {
     output {
     File raw_vcf = pileup.raw_vcf
     File raw_vcf_index = pileup.raw_vcf_index
+    File text_pileup = pileup.text_pileup
     
     }
 
@@ -37,6 +38,7 @@ task GenerateRawVCF {
    output {
       File raw_vcf = "~{sample_name}.raw.vcf.gz"
       File raw_vcf_index = "~{sample_name}.raw.vcf.gz.csi"
+      File text_pileup = "~{sample_name}.pileup.tsv"
 
    }
    runtime {
@@ -49,6 +51,8 @@ task GenerateRawVCF {
    bcftools --version
    bcftools mpileup -f ~{fasta} -r chrM -d 10000 -q 20 -Q 20 -a FORMAT/AD,FORMAT/ADF,FORMAT/ADR,FORMAT/DP,FORMAT/SP,INFO/AD,INFO/ADF,INFO/ADR ~{sample_bam}| bcftools call -m -A | bcftools filter -e 'ALT=="."' -O z -o "~{sample_name}.raw.vcf.gz"
    bcftools index "~{sample_name}.raw.vcf.gz"
+   
+   call-variants -b ~{sample_bam} -r ~{fasta} -n chrM -o "~{sample_name}.pileup.tsv"
    
  }
 }

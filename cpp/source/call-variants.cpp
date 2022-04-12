@@ -353,7 +353,8 @@ int main(int argc, char * argv[]){
   // number of samples
   int n_samples = 1;
   //initialize for pileup
-  auto max_depth = INT_MAX;
+  //auto max_depth = INT_MAX;
+  int max_depth = 10000000;
     mplp_aux_t **data;
     int i, tid, *n_plp, tid0 = 0;
     hts_pos_t pos, beg0 = 0, end0 = HTS_POS_MAX, ref_len;
