@@ -48,7 +48,7 @@ class SampleBasePileup
 
   static void writeHeader(std::ostream & os){
     os << "Chrom" << "\t" << "Start" << "\t" << "ref" << "\t" << "base" << "\t" <<
-      "F1R2R1" << "\t" << "F1R2R2" << "\t" << "F2R1R1" << "\t" << "F2R2R2" << std::endl;
+      "F1R2R1" << "\t" << "F1R2R2" << "\t" << "F2R1R1" << "\t" << "F2R1R2" << std::endl;
 
   };
 
