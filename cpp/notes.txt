@@ -20,3 +20,5 @@ cmake -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib -Wl,-
 # gdb testing
 run -b ../tests/mpileup-inputs/sim-variant.bam -r ../tests/mpileup-inputs/susScr11.mito.fa
 run -b ../tests/mpileup-inputs/sim-artifact.bam -r ../tests/mpileup-inputs/susScr11.mito.fa -o test.tsv
+
+run -b ../tests/mpileup-inputs/yorkshire-1indel.bam -r ../tests/mpileup-inputs/susScr11.mito.fa -o indel

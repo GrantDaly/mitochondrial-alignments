@@ -4,8 +4,8 @@
     Copyright (C) 2008-2015, 2019-2021 Genome Research Ltd.
     Portions copyright (C) 2009-2012 Broad Institute.
 
-    Author: Heng Li <lh3@sanger.ac.uk>
-    Modified by: Grant Daly
+    Author of bam_plcmd.c: Heng Li <lh3@sanger.ac.uk>
+    Adapted by: Grant Daly <daly@southalabama.edu>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +60,7 @@ DEALINGS IN THE SOFTWARE.  */
 
 #include <seqan3/argument_parser/all.hpp>
 
-#include "sampleBasePileup.hpp"
+#include "samplePileup.hpp"
 
 typedef struct {
     samFile *fp;
@@ -175,76 +175,15 @@ static int mplp_func(void *data, bam1_t *b)
     } while (skip > 0);
     // std::cout << "Returning with this value " << ret << std::endl;
     return ret;
-    // do {
-    //     int has_ref;
-    //     // ret = plp_data->iter? sam_itr_next(plp_data->fp, plp_data->iter, b) : sam_read1(plp_data->fp, plp_data->header, b);
-    // 	// std::cout << "Bam Return Value " << ret << std::endl;
-    //     if (ret < 0) break;
-    // //     // The 'B' cigar operation is not part of the specification, considering as obsolete.
-    // //     //  bam_remove_B(b);
-    //     if (b->core.tid < 0 || (b->core.flag&BAM_FUNMAP)) { // exclude unmapped reads
-    //         skip = 1;
-    //         continue;
-    //     }
-    // 
+     
 }
-	// todo; filter by read1, read2 if necessary. May be able to deal with this in the pileup processing function
-    //     if (ma->conf->rflag_require && !(ma->conf->rflag_require&b->core.flag)) { skip = 1; continue; }
-    //     if (ma->conf->rflag_filter && ma->conf->rflag_filter&b->core.flag) { skip = 1; continue; }
-    //     if (ma->conf->bed && ma->conf->all == 0) { // test overlap
-    //         skip = !bed_overlap(ma->conf->bed, sam_hdr_tid2name(ma->h, b->core.tid), b->core.pos, bam_endpos(b));
-    //         if (skip) continue;
-    //     }
-    //     if (ma->conf->rghash) { // exclude read groups
-    //         uint8_t *rg = bam_aux_get(b, "RG");
-    //         skip = (rg && khash_str2int_get(ma->conf->rghash, (const char*)(rg+1), NULL)==0);
-    //         if (skip) continue;
-    //     }
-    //     if (ma->conf->flag & MPLP_ILLUMINA13) {
-    //         int i;
-    //         uint8_t *qual = bam_get_qual(b);
-    //         for (i = 0; i < b->core.l_qseq; ++i)
-    //             qual[i] = qual[i] > 31? qual[i] - 31 : 0;
-    //     }
 
-    //     if (ma->conf->fai && b->core.tid >= 0) {
-    //         has_ref = mplp_get_ref(ma, b->core.tid, &ref, &ref_len);
-    //         if (has_ref && ref_len <= b->core.pos) { // exclude reads outside of the reference sequence
-    //             fprintf(stderr,"[%s] Skipping because %"PRIhts_pos" is outside of %"PRIhts_pos" [ref:%d]\n",
-    //                     __func__, (int64_t) b->core.pos, ref_len, b->core.tid);
-    //             skip = 1;
-    //             continue;
-    //         }
-    //     } else {
-    //         has_ref = 0;
-    //     }
-
-    //     skip = 0;
-    //     if (has_ref && (ma->conf->flag&MPLP_REALN)) sam_prob_realn(b, ref, ref_len, (ma->conf->flag & MPLP_REDO_BAQ)? 7 : 3);
-    //     if (has_ref && ma->conf->capQ_thres > 10) {
-    //         int q = sam_cap_mapq(b, ref, ref_len, ma->conf->capQ_thres);
-    //         if (q < 0) skip = 1;
-    //         else if (b->core.qual > q) b->core.qual = q;
-    //     }
-    //     if (b->core.qual < ma->conf->min_mq) skip = 1;
-    //     else if ((ma->conf->flag&MPLP_NO_ORPHAN) && (b->core.flag&BAM_FPAIRED) && !(b->core.flag&BAM_FPROPER_PAIR)) skip = 1;
-
-
-/*
- * Performs pileup
- * @param conf configuration for this pileup
- * @param n number of files specified in fn
- * @param fn filenames
- * @param fn_idx index filenames
- */
-
-
-int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t * const params, SampleBasePileup & outPileup) {
+int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t * const params, SamplePileup & outPileup) {
 
   // check if the bam is reverse bam_is_rev() or mate reverse bam_ismrev()
   // that is, separate F1R2 R1 and R2, and F2R1 R1 and R2
-
-  //start with ignoring indels
+  std::string baseStr;
+  // if not an indel, treat as a normal pileup
   if( ! pileup->indel) {
     //std::cout << "not an indel" << std::endl;
     int baseQual = -1;
@@ -257,32 +196,11 @@ int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t
       }
 	
     bamChar = toupper(seq_nt16_str[bam_seqi(bam_get_seq(pileup->b), pileup->qpos)]);
-    std::string baseStr(1, bamChar);
+    // baseStr = std::string(1, bamChar);
+    baseStr = bamChar;
 	// std::cout << bamChar << std::endl;
 
-	int bamFlag = pileup->b->core.flag;
-	// if((bamFlag & BAM_FPAIRED & BAM_FPROPER_PAIR & BAM_FMREVERSE & BAM_FREAD1) ==
-	// std::cout << "Flag " << bamFlag << std::endl;
-
-	// F1R2 Read 1's
-	if((bamFlag & 99) == 99){
-	  //std::cout << "F1R2 Read1" << std::endl;
-	  outPileup.F1R2R1s[baseStr] += 1;
-	}
-	// F1R2 Read 2's
-	else if((bamFlag & 147) == 147){
-	  //std::cout << "F1R2 Read2" << std::endl;
-	  outPileup.F1R2R2s[baseStr] += 1;
-	}
-	// F2R1 Read 1's
-	if((bamFlag & 83) == 83){
-	  //std::cout << "F2R1 Read1" << std::endl;
-	  outPileup.F2R1R1s[baseStr] += 1;
-	}
-	else if((bamFlag & 163) == 163){
-	  //std::cout << "F1R2 Read2" << std::endl;
-	  outPileup.F2R1R2s[baseStr] += 1;
-	}
+	
 	
   }
     else
@@ -291,7 +209,47 @@ int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t
 	return 0;
       }
   }
-  
+  else if ( pileup->indel) {
+    
+    if(pileup->indel > 0){
+      //baseStr = std::string(1, 'ins');
+      baseStr = std::string("ins");
+    }
+    else if(pileup->indel < 0){
+      //baseStr = std::string(1, 'del');
+      baseStr = std::string("del");
+    }
+    
+  }
+
+  int bamFlag = pileup->b->core.flag;
+	// if((bamFlag & BAM_FPAIRED & BAM_FPROPER_PAIR & BAM_FMREVERSE & BAM_FREAD1) ==
+	// std::cout << "Flag " << bamFlag << std::endl;
+
+	// F1R2 Read 1's
+	if((bamFlag & 99) == 99){
+	  //std::cout << "F1R2 Read1" << std::endl;
+	  // outPileup[baseStr]->F1R2R1s += 1;
+	  outPileup.getSampleBasePileup(baseStr)->F1R2R1s += 1;
+	  //std::cout << "test " << outPileup.getSampleBasePileup(baseStr)->F1R2R1s << std::endl;
+	}
+	// F1R2 Read 2's
+	else if((bamFlag & 147) == 147){
+	  //std::cout << "F1R2 Read2" << std::endl;
+	  // outPileup[baseStr]->F1R2R2s += 1;
+	  outPileup.getSampleBasePileup(baseStr)->F1R2R2s += 1;
+	}
+	// F2R1 Read 1's
+	if((bamFlag & 83) == 83){
+	  //std::cout << "F2R1 Read1" << std::endl;
+	  // outPileup[baseStr]->F2R1R1s += 1;
+	  outPileup.getSampleBasePileup(baseStr)->F2R1R1s += 1;
+	}
+	else if((bamFlag & 163) == 163){
+	  //std::cout << "F1R2 Read2" << std::endl;
+	  // outPileup[baseStr]->F2R1R2s += 1;
+	  outPileup.getSampleBasePileup(baseStr)->F2R1R2s += 1;
+	}
   return 0;
 }
 
@@ -350,7 +308,7 @@ int main(int argc, char * argv[]){
 
   std::ofstream outFile;
   outFile.open(params.outFileName);
-  SampleBasePileup::writeHeader( outFile);
+  SamplePileup::writeHeader( outFile);
   // number of samples
   int n_samples = 1;
   //initialize for pileup
@@ -476,8 +434,8 @@ int main(int argc, char * argv[]){
     for (int i = 0; i < n_samples; i++){
       // iterate through the pileups returned for a sample
       // each sample at each position has its own sample base pileup
-      char refBase = ref[pos];
-      SampleBasePileup samplePileup = SampleBasePileup(pos +1, params.regionString, refBase);
+      char refBase = toupper(ref[pos]);
+      SamplePileup samplePileup = SamplePileup(pos +1, params.regionString, refBase);
       for( int j = 0; j < n_plp[i]; j++){
 	// std::cout << "Current # of pileups " << n_plp[i] << std::endl;
 
@@ -497,6 +455,7 @@ int main(int argc, char * argv[]){
       }
       // finished iterating through sample, so output
       //std::cout << samplePileup;
+
       outFile << samplePileup;
 
     }
