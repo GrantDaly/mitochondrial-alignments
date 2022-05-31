@@ -27,5 +27,5 @@ target_link_libraries (inserts-and-cov seqan3::seqan3 hts gsl)
 add_executable(identify-numt identify-numt.cpp)
 target_link_libraries (identify-numt seqan3::seqan3 hts gsl)
 
-add_executable(call-variants call-variants.cpp sampleBasePileup.hpp)
+add_executable(call-variants call-variants.cpp samplePileup.hpp sampleBasePileup.hpp)
 target_link_libraries (call-variants seqan3::seqan3 hts gsl)
