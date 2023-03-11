@@ -7,14 +7,14 @@ git submodule update --init --recursive
 
 conda install -c conda-forge gsl 
 
-# compile
+# compile from "build" directory
  cmake -DCMAKE_BUILD_TYPE=Debug ../source
 
 # assuming the hts-wrapper is already built
-cmake -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib" ../source/
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib" ../source/
 
-# this worked when just linking pure htslib. Now going to try to add in wrapper as well
-cmake -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib -Wl,-rpath-link=${CONDA_PREFIX}/lib" ../source/
+# (current methon) this worked when just linking pure htslib. Now going to try to add in wrapper as well
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib -Wl,-rpath-link=${CONDA_PREFIX}/lib" ../source/
 
 
 # gdb testing

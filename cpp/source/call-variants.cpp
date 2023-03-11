@@ -306,6 +306,11 @@ int main(int argc, char * argv[]){
   mpileup_params_t params;
   parse_arguments(params, argc,argv);
 
+  /* Important Paramaters currently hard-coded */
+  /* Maximum Depth 100,000 = 1e5 = 100K */
+  /* Min Quality Score Increased to "40" Phred, = 1 in 10K error rate */
+  /* At 100K read depth and 40Phred error rate binomial model predicts << 0.01% error and < 10
+     erroneous bases*/
   std::ofstream outFile;
   outFile.open(params.outFileName);
   SamplePileup::writeHeader( outFile);
@@ -313,11 +318,11 @@ int main(int argc, char * argv[]){
   int n_samples = 1;
   //initialize for pileup
   //auto max_depth = INT_MAX;
-  int max_depth = 10000000;
+  int max_depth = 100000;
     mplp_aux_t **data;
     int i, tid, *n_plp, tid0 = 0;
     hts_pos_t pos, beg0 = 0, end0 = HTS_POS_MAX, ref_len;
-    int minBaseQ = 30;
+    int minBaseQ = 40;
     const bam_pileup1_t **plp;
     // mplp_ref_t mp_ref = MPLP_REF_INIT;
     bam_mplp_t iter;
