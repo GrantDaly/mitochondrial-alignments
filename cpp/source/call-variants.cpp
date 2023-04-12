@@ -75,7 +75,7 @@ struct mpileup_params_t {
   std::string bamName;
   std::string outFileName;
   std::string regionString;
-  int minBaseQ=30;
+  int minBaseQ=40;
 } ;
 
 // typedef struct {
@@ -187,6 +187,7 @@ int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t
   if( ! pileup->indel) {
     //std::cout << "not an indel" << std::endl;
     int baseQual = -1;
+    
     if(  pileup->b->core.l_qseq)
       {
 	char bamChar = -1;
@@ -287,7 +288,8 @@ void parse_arguments(mpileup_params_t & params, int argc, char * argv[]) {
     params.refName = inFastaName.string();
     params.outFileName = outFileName.string();
     params.regionString = mitoName;
-    params.minBaseQ = 30;
+    // hard coded min base Q 40. see note below
+    params.minBaseQ = 40;
     
 
 }
@@ -322,7 +324,7 @@ int main(int argc, char * argv[]){
     mplp_aux_t **data;
     int i, tid, *n_plp, tid0 = 0;
     hts_pos_t pos, beg0 = 0, end0 = HTS_POS_MAX, ref_len;
-    int minBaseQ = 40;
+    //int minBaseQ = 40;
     const bam_pileup1_t **plp;
     // mplp_ref_t mp_ref = MPLP_REF_INIT;
     bam_mplp_t iter;

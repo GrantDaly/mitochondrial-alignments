@@ -18,7 +18,7 @@ class SampleBasePileup
   SampleBasePileup & operator=(SampleBasePileup &&) = default;
 
   double artifactScore();
-  std::string strandTest();
+  double strandTest();
   long int totalBases();
 };
 
@@ -33,15 +33,11 @@ double SampleBasePileup::artifactScore() {
   // log2 ratio of F1R2 to F2R1 to detect orientation artifacts (pre-adapter)
   return log2( (double)(F1R2R1s + F1R2R2s + 1) / (F2R1R1s + F2R1R2s + 1) );
 }
-std::string SampleBasePileup::strandTest() {
+double SampleBasePileup::strandTest() {
   // flag for if mimimum number of reads go to both strands to avoid sequencing artifacts
-  if(((F1R2R1s + F2R1R2s) >= 10) && ((F1R2R2s + F2R1R1s) >= 10)){
-    return std::string("True");
-  }
-  else {
-    return std::string("False");
-  }
+  return log2( (double)(F1R2R1s + F2R1R2s + 1) / (F1R2R2s + F2R1R1s + 1));
 }
+
 long int SampleBasePileup::totalBases() {
   return F1R2R1s + F1R2R2s + F2R1R1s + F2R1R2s;
 }
