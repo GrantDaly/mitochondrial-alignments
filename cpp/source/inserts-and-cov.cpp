@@ -67,6 +67,35 @@ int cmpfunc (const void * a, const void * b) {
 
 // }
 
+int modeValue(const std::vector<int> & inVector) {
+  std::map<int,int> count;
+  //for(int i = 0; i < inVector.size(); i++) {
+  //}
+  // put values into a map of intert size and count
+  for( const auto & value : inVector ){
+    if(count.contains(value) == true) {
+      count[value] += 1;
+    }
+    else {
+      count[value] = 0;
+    }
+  }
+  // now that counts have been completed, create vector of pairs of insert size/count
+  std::vector<std::pair<int,int>> countPairVec;
+  for( const auto & [key, value] : count ) {
+    // std::cout << "[" << key << "] = " << value << std::endl;
+    countPairVec.push_back(std::make_pair(key, value));
+  }
+  
+  // sort vector of pairs by second value, which is count
+  
+  std::sort(countPairVec.begin(), countPairVec.end(), [](auto &left, auto &right) {
+    return left.second > right.second ;
+  });
+  
+  return countPairVec[0].first;
+}
+
 int readFilter(bam1_t *inRead){
   //picking reads that are leftmost so pos + insert
   //gives the fragment span
@@ -246,7 +275,7 @@ int main(int argc, char* argv[]){
    
    fs::path outBinInsertName{sampleName + "." + filePrefix + ".insert.bin.tsv"};
    outBinInsertFile.open(outDirectory / insertDir / outBinInsertName  , std::ios::out);
-   outBinInsertFile << "Chromosome\tStart\tEnd\tName\tScore\tStrand\tBin\tSample\tMean\tStd-Dev\tMin\t25%\t50%\t75%\tMax" << std::endl;
+   outBinInsertFile << "Chromosome\tStart\tEnd\tName\tScore\tStrand\tBin\tSample\tMean\tStd-Dev\tMin\t25%\t50%\t75%\tMax\tMode" << std::endl;
      
    while(inBed >> bedLine){
      //std::cout << bedLine << std::endl;
@@ -255,6 +284,7 @@ int main(int argc, char* argv[]){
      long int end = bedLine.end -1;
      
      auto intervalLength = end - start + 1;
+     // implemented these as primitive arrays out of convenience, wouldn't have to keep reallocating memory and could easily use gnu scientific library (although should work with vector as well)
      int FoneRtwo[intervalLength];
      int FtwoRone[intervalLength];
 
@@ -263,6 +293,8 @@ int main(int argc, char* argv[]){
 
      int FtwoRoneStarts[intervalLength];
      int FtwoRoneEnds[intervalLength];
+
+
      
      for(auto i=0; i < intervalLength; i++){
        FoneRtwo[i] = 0;
@@ -274,9 +306,25 @@ int main(int argc, char* argv[]){
        FtwoRoneStarts[i] = 0;
        FtwoRoneEnds[i] = 0;
      }
-
+     
+     // 2d array indexed by start, end and value is count. So each Bed interval will have the count of start/stop
+     // these being 2d arrays appears to blow stack.
+     // std::vector<std::vector<int>> fragmentPosCounts(intervalLength);
+     // for(auto i=0; i < intervalLength; i++){
+     //   //auto tempVector = fragmentPosCounts[i];
+     //   //fragmentPosCounts[i].resize(intervalLength);
+     //   fragmentPosCounts[i] = std::vector<int>(intervalLength,0);
+     //   // for(auto j=0; j < intervalLength; j++){
+     //   // 	 // tempVector[j] = 0;
+     //   // 	 std::cout << fragmentPosCounts[i][j] << "\t";
+     //   // }
+     // }
+     // std::cout << std::endl;
+     
      // make a vector of vectors
      auto numberInsertBins = ((intervalLength - 1) / insertVecBinSize) + 1;
+     // this is ugly b/c primitive array of vector<int>'s. Eventually should make vector of vectors.
+     // probably not as pressing a need as "fragmentPosCounts" because this will only be # bin dimension array
      std::vector<int> binInsertVecs[numberInsertBins];
      
      
@@ -320,7 +368,7 @@ int main(int argc, char* argv[]){
         auto covArrayEnd = std::min(rightPos, end) - start ;
         //std::cout << "corrected start " << covArrayStart << "corrected end " << covArrayEnd << std::endl;
 
-	// coverages 
+	// coverages
       if(strandReturn == 1){
 	updateCovArray(FoneRtwo, covArrayStart, covArrayEnd);
 	FoneRtwoStarts[covArrayStart] += 1;
@@ -349,6 +397,9 @@ int main(int argc, char* argv[]){
      
 	rawInsertHist[absInsert -1]+=1;
 	insertVec.push_back(absInsert);
+
+	// add to count of that # of inserts
+	// fragmentPosCounts[leftPos][rightPos] += 1;
 	
     }
       } 
@@ -384,7 +435,7 @@ int main(int argc, char* argv[]){
    auto insertMedian = gsl_stats_int_median_from_sorted_data(tempInsertVec.data(), 1, tempInsertVec.size());
    auto insertSeventyFive = gsl_stats_int_quantile_from_sorted_data(tempInsertVec.data(), 1, tempInsertVec.size(), 0.75);
    auto insertMax = gsl_stats_int_max(tempInsertVec.data(), 1, tempInsertVec.size());
-   
+   auto insertMode = modeValue( insertVec);
    outBinInsertFile << bedLine.chrom << "\t" << bedLine.start << "\t"
 		    << bedLine.end << "\t" << bedLine.name << "\t"
 		    << bedLine.score << "\t" << bedLine.strand << "\t" 
@@ -392,14 +443,14 @@ int main(int argc, char* argv[]){
 		    << insertMean << "\t" << insertStdev << "\t"
 		    << insertMin << "\t" << insertTwentyFive
 		    << "\t" << insertMedian << "\t" <<
-     insertSeventyFive << "\t" << insertMax << std::endl;
+     insertSeventyFive << "\t" << insertMax << "\t" << insertMode <<std::endl;
    }
    else{
-     outBinInsertFile <<  bedLine.chrom << "\t" << bedLine.start << "\t"
-		    << bedLine.end << "\t" << bedLine.name << "\t"
-		    << bedLine.score << "\t" << bedLine.strand << "\t" 
-		    <<  binNum + 1 << "\t" << sampleName << "\t"
-		    << "-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan" << std::endl;
+     outBinInsertFile << bedLine.chrom << "\t" << bedLine.start << "\t"
+                      << bedLine.end << "\t" << bedLine.name << "\t"
+                      << bedLine.score << "\t" << bedLine.strand << "\t"
+                      << binNum + 1 << "\t" << sampleName << "\t"
+                      << "-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan" << std::endl;
    }
   }
 
@@ -473,7 +524,7 @@ int main(int argc, char* argv[]){
    fs::path outInsertStatsName{sampleName + "." + filePrefix + ".insert.stats.tsv"};
    outInsertStatsFile.open(outDirectory / insertDir /  outInsertStatsName, std::ios::out);
 
-   outInsertStatsFile << "Sample\tMean\tStd-Dev\tMin\t25%\t50%\t75%\tMax" << std::endl;
+   outInsertStatsFile << "Sample\tMean\tStd-Dev\tMin\t25%\t50%\t75%\tMax\tMode" << std::endl;
    if(insertVec.size() > 0){
    std::sort(insertVec.begin(), insertVec.end());
    auto insertMean = gsl_stats_int_mean(insertVec.data(), 1, insertVec.size());
@@ -483,13 +534,13 @@ int main(int argc, char* argv[]){
    auto insertMedian = gsl_stats_int_median_from_sorted_data(insertVec.data(), 1, insertVec.size());
    auto insertSeventyFive = gsl_stats_int_quantile_from_sorted_data(insertVec.data(), 1, insertVec.size(), 0.75);
    auto insertMax = gsl_stats_int_max(insertVec.data(), 1, insertVec.size());
-   
+   auto insertMode = modeValue( insertVec);
    outInsertStatsFile << sampleName << "\t" << insertMean << "\t" << insertStdev <<
      "\t" << insertMin << "\t" << insertTwentyFive << "\t" << insertMedian << "\t" <<
-     insertSeventyFive << "\t" << insertMax << std::endl;
+     insertSeventyFive << "\t" << insertMax << "\t" << insertMode <<std::endl;
    }
    else{
-     outInsertStatsFile << sampleName << "\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan" << std::endl;
+     outInsertStatsFile << sampleName << "\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan\t-nan" << std::endl;
    }
    hts_idx_destroy(inBamIndex);
    bam_hdr_destroy(bamHeader);
