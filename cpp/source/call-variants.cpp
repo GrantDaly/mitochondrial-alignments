@@ -75,7 +75,8 @@ struct mpileup_params_t {
   std::string bamName;
   std::string outFileName;
   std::string regionString;
-  int minBaseQ=40;
+  int minBaseQ = 40;
+  int minMapQ = 40;
 } ;
 
 // typedef struct {
@@ -183,23 +184,45 @@ int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t
   // check if the bam is reverse bam_is_rev() or mate reverse bam_ismrev()
   // that is, separate F1R2 R1 and R2, and F2R1 R1 and R2
   std::string baseStr;
+  int bamFlag = pileup->b->core.flag;
+
+  char bamChar = -1;
+  int baseQual = -1;
+  baseQual = bam_get_qual(pileup->b)[pileup->qpos];
+
+  bamChar = toupper(seq_nt16_str[bam_seqi(bam_get_seq(pileup->b), pileup->qpos)]);
+    // baseStr = std::string(1, bamChar);
+    baseStr = bamChar;
   // if not an indel, treat as a normal pileup
   if( ! pileup->indel) {
     //std::cout << "not an indel" << std::endl;
-    int baseQual = -1;
+    
     
     if(  pileup->b->core.l_qseq)
       {
-	char bamChar = -1;
-	baseQual = bam_get_qual(pileup->b)[pileup->qpos];
-    if(baseQual <  params->minBaseQ){
+
+
+	// this covers case of low quality, where I also want to include proper paired ratio
+	if((baseStr != "N") && (pileup->b->core.qual < params->minMapQ)){
+	//  if ((bamFlag & BAM_FPROPER_PAIR) == BAM_FPROPER_PAIR) {
+	//    // std::cout << "Properly paired low qual" << std::endl;
+	//    outPileup.getSampleBasePileup(baseStr)->properly_paired += 1;
+	// }
+	 // trying to include low quality improper and high quality proper, to be extra pessimistic
+	if((bamFlag & BAM_FPROPER_PAIR ) != BAM_FPROPER_PAIR ){
+	  // std::cout << "Properly paired low qual" << std::endl;	  
+	  outPileup.getSampleBasePileup(baseStr)->improperly_paired += 1;
+	}
+	 return 0;
+	}
+	
+	// base and mapping quality must not be less than min qualities
+	// would technically be more efficient to do mapping qual in pileup function but can't get params struct into it as of now.
+	if((baseQual <  params->minBaseQ) || (pileup->b->core.qual < params->minMapQ) ){
       return 0;
       }
 	
-    bamChar = toupper(seq_nt16_str[bam_seqi(bam_get_seq(pileup->b), pileup->qpos)]);
-    // baseStr = std::string(1, bamChar);
-    baseStr = bamChar;
-	// std::cout << bamChar << std::endl;
+    
 
 	
 	
@@ -223,7 +246,7 @@ int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t
     
   }
 
-  int bamFlag = pileup->b->core.flag;
+  
 	// if((bamFlag & BAM_FPAIRED & BAM_FPROPER_PAIR & BAM_FMREVERSE & BAM_FREAD1) ==
 	// std::cout << "Flag " << bamFlag << std::endl;
 
@@ -250,6 +273,14 @@ int process_pileup(const bam_pileup1_t *pileup, hts_pos_t pos,  mpileup_params_t
 	  //std::cout << "F1R2 Read2" << std::endl;
 	  // outPileup[baseStr]->F2R1R2s += 1;
 	  outPileup.getSampleBasePileup(baseStr)->F2R1R2s += 1;
+	}
+	// here want proper paired and improper paired counted and insert size stored
+        if ((bamFlag & BAM_FPROPER_PAIR) == BAM_FPROPER_PAIR) {
+          outPileup.getSampleBasePileup(baseStr)->properly_paired += 1;
+	}
+	else if((bamFlag & BAM_FPROPER_PAIR ) != BAM_FPROPER_PAIR ){
+	  // std::cout << "improperly paired " << std::endl;
+	  outPileup.getSampleBasePileup(baseStr)->improperly_paired += 1;
 	}
   return 0;
 }

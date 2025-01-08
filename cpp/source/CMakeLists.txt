@@ -15,7 +15,8 @@ list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../hts-wrapper/build/
 find_package (seqan3 3.0 REQUIRED)
 
 find_package(hts-wrapper REQUIRED)
-find_package(Boost)
+find_package(GSL REQUIRED)
+#find_package(Boost)
 
 # build app with seqan3
 
@@ -24,13 +25,13 @@ find_package(Boost)
 #target_link_libraries (inserts-and-cov seqan3::seqan3 hts gsl)
 
 add_executable (inserts-and-cov inserts-and-cov.cpp)
-target_link_libraries (inserts-and-cov seqan3::seqan3 hts gsl)
+target_link_libraries (inserts-and-cov seqan3::seqan3 hts GSL::gsl)
 
 add_executable(identify-numt identify-numt.cpp)
-target_link_libraries (identify-numt seqan3::seqan3 hts gsl)
+target_link_libraries (identify-numt seqan3::seqan3 hts-wrapper hts GSL::gsl)
 
 add_executable(call-variants call-variants.cpp samplePileup.hpp sampleBasePileup.hpp)
-target_link_libraries (call-variants seqan3::seqan3 hts gsl)
+target_link_libraries (call-variants seqan3::seqan3 hts GSL::gsl)
 
 add_executable(simulated-reads simulated-reads.cpp)
-target_link_libraries (simulated-reads seqan3::seqan3 hts gsl)
+target_link_libraries (simulated-reads seqan3::seqan3 hts-wrapper hts GSL::gsl)

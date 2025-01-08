@@ -10,15 +10,22 @@ conda install -c conda-forge gsl
 # compile from "build" directory
  cmake -DCMAKE_BUILD_TYPE=Debug ../source
 
-# assuming the hts-wrapper is already built
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib" ../source/
+# assuming the hts-wrapper is already built and installed to conda prefix
+#cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib" ../source/
+
+cmake -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib -Wl,-rpath-link=${CONDA_PREFIX}/lib" -S ../ -B .
+cmake --build .
+cmake --install . --prefix ${CONDA_PREFIX}/
+
 
 # (current methon) this worked when just linking pure htslib. Now going to try to add in wrapper as well
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib -Wl,-rpath-link=${CONDA_PREFIX}/lib" ../source/
 
 
 # gdb testing
-run -b ../tests/mpileup-inputs/sim-variant.bam -r ../tests/mpileup-inputs/susScr11.mito.fa
 run -b ../tests/mpileup-inputs/sim-artifact.bam -r ../tests/mpileup-inputs/susScr11.mito.fa -o test.tsv
 
 run -b ../tests/mpileup-inputs/yorkshire-1indel.bam -r ../tests/mpileup-inputs/susScr11.mito.fa -o indel
+
+# test simulated reads
+./simulated-reads --ref ~/science/references/hg38/Homo_sapiens_assembly38.fasta --bed ~/science/references/mitochondria/beds/empirical-numt.bed 

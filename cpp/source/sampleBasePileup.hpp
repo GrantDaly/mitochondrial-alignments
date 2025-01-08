@@ -15,11 +15,15 @@ class SampleBasePileup
   long int F1R2R2s = 0;
   long int F2R1R1s = 0;
   long int F2R1R2s = 0;
+  long int properly_paired = 0;
+  long int improperly_paired = 0;
   SampleBasePileup & operator=(SampleBasePileup &&) = default;
 
   double artifactScore();
   double strandTest();
   long int totalBases();
+  double fractionUnpaired();
+  double getVAF(auto allSiteBases);
 };
 
 /*
@@ -42,3 +46,20 @@ long int SampleBasePileup::totalBases() {
   return F1R2R1s + F1R2R2s + F2R1R1s + F2R1R2s;
 }
 
+double SampleBasePileup::fractionUnpaired() {
+  if(improperly_paired == 0)
+    return 0;
+  if(properly_paired == 0)
+    return 1;
+  
+  return (double)(improperly_paired)  / ( properly_paired + improperly_paired);
+}
+
+double SampleBasePileup::getVAF(auto allSiteBases) {
+  if(allSiteBases > 0) {
+    return (double) totalBases() / allSiteBases;
+  }
+  else {
+    return -1.0;
+  }
+}
