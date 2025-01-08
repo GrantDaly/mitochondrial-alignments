@@ -7,12 +7,24 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # make cache variables for install destinations
 include(GNUInstallDirs)
 
+
+
 # add seqan3 to search path
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../seqan3/build_system")
 list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../hts-wrapper/build/cmake")
  
 # require seqan3 with a version between >=3.0.0 and <4.0.0
 find_package (seqan3 3.0 REQUIRED)
+# supress warning about hardware destructive interference size. Taken from seqan Github. 
+#As far as I can tell this could only impact ABI compatibility and this software is not inteneded to be portable in the compiled state.
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        add_compile_options ( -Wall -Wextra -Wpedantic)
+        # GCC12 and above: Disable warning about std::hardware_destructive_interference_size not being ABI-stable.
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
+            add_compile_options ("-Wno-interference-size")
+        endif ()
+    endif ()
+
 
 find_package(hts-wrapper REQUIRED)
 find_package(GSL REQUIRED)

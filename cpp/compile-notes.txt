@@ -4,6 +4,10 @@ git submodule add https://github.com/seqan/seqan3.git
 # initialize submodules recursively
 git submodule update --init --recursive
 
+# update seqan by specific release tag
+# https://git-scm.com/docs/gitsubmodules
+git -C cpp/seqan3/ checkout <#.#.#> 
+
 
 conda install -c conda-forge gsl 
 
