@@ -1,9 +1,9 @@
 {
-  "coverageAndInsert.sample_name": "S9_0",
-  "coverageAndInsert.bam_index": "gs://south-al-genomics/sampleData/wdl-test/align/output/S9_0.bam.bai",
-  "coverageAndInsert.fasta": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta",
-  "coverageAndInsert.fasta_index": "gs://gcp-public-data--broad-references/hg38/v0/Homo_sapiens_assembly38.fasta.fai",
-  "coverageAndInsert.bam_file": "gs://south-al-genomics/sampleData/wdl-test/align/output/S9_0.bam",
-  "coverageAndInsert.bed_names": ["numt", "polymorphic-numt"],
-  "coverageAndInsert.bed_files": ["gs://south-al-genomics/references/mitochondria/old-beds/numt-GRCh38.fixed.bed", "gs://south-al-genomics/references/mitochondria/beds/dayama.grch38.200slop.bed"]
+  "coverageAndInsert.sample_name": "C17",
+  "coverageAndInsert.bam_index": "/home/grant/Development/mitochondrial-alignments/cpp/tests/C17.pos.sort.01.bam.bai",
+  "coverageAndInsert.fasta": "/home/grant/science/references/hg38/Homo_sapiens_assembly38.fasta",
+  "coverageAndInsert.fasta_index": "/home/grant/science/references/hg38/Homo_sapiens_assembly38.fasta.fai",
+  "coverageAndInsert.bam_file": "/home/grant/Development/mitochondrial-alignments/cpp/tests/C17.pos.sort.01.bam",
+  "coverageAndInsert.bed_names": ["mito","numt", "polymorphic", "shuf"],
+  "coverageAndInsert.bed_files": ["/home/grant/Development/mitochondrial-alignments/beds/mito.full.human.bed", "/home/grant/Development/mitochondrial-alignments/beds/numt-GRCh38.fixed.bed", "/home/grant/Development/mitochondrial-alignments/beds/dayama.grch38.200slop.bed", "/home/grant/Development/mitochondrial-alignments/beds/shuf-numt.bed"]
 }

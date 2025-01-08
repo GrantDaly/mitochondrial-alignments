@@ -17,7 +17,6 @@ import requests
 
 def getRawCoverageDF(bedPrefix, inputDir, aggregate=False):
     covGlob = glob.glob(str(inputDir) + "/*." + bedPrefix + ".coverage.tsv")
-    
     covDtypes = {
     "Chromosome":"object",
     "Start":"int64",
@@ -39,7 +38,6 @@ def getRawCoverageDF(bedPrefix, inputDir, aggregate=False):
     coverageList = []
     
     for filename in covGlob:
-        
         tempCovDF = pd.read_csv(filename, sep="\t", dtype=covDtypes)
         
         if(aggregate == True):
@@ -502,7 +500,7 @@ if __name__ == "__main__":
     designDF.sort_values("Sample").to_excel(writer, "Design", index=None)
 
     for tempName, tempDF in coverageStatsDict.items():
-        tempDF = tempDF.merge(designDF, how="left", on="Sample")
+        #tempDF = tempDF.merge(designDF, how="left", on="Sample")
         tempDF.to_excel(writer, tempName + " Coverage Stats",index=None)
 
     for tempName, tempDF in pivotCoverageDict.items():
@@ -511,12 +509,12 @@ if __name__ == "__main__":
     binnedMito.to_excel(writer, "100bp Bin Mito")
     
     for tempName, tempDF in insertStatsDict.items():
-        tempDF = tempDF.merge(designDF, how="left", on="Sample")
+        # tempDF = tempDF.merge(designDF, how="left", on="Sample")
         tempDF.to_excel(writer, tempName + " Insert Stats",index=None)
     for tempName, tempDF in pivotedInsertHistDict.items():
         tempDF.to_excel(writer, tempName + " Insert Histograms")
 
-    writer.save()
+    writer.close()
 
     # write bigwig files
     print("Creating Bigwig Files")
@@ -527,7 +525,8 @@ if __name__ == "__main__":
     for tempName, tempDF in coverageDict.items():
         tempDF.to_csv(outDirCoverage / (tempName + ".coverage.tsv"),sep="\t",index=None)
     
-    createBigWigs(outDirCoverage, designDF, coverageDict[mitoName])
+    # not making bigwigs for now due to library bug
+    #createBigWigs(outDirCoverage, designDF, coverageDict[mitoName])
 
     ### process heteroplasmy tsv file
     # if there aren't heteroplasmy files, exit
@@ -550,7 +549,7 @@ if __name__ == "__main__":
                             "1/1": "Homoplasmy",
                             "./.": "Missing"})
     #annotationDF = getAnnotationsAll(raw_variants.query('(ID != "NORSID") and (Genotype != "Ref")')['ID'])
-    merged_variants = raw_variants.reset_index().merge(designDF, how="left", on="Sample")
+    # merged_variants = raw_variants.reset_index().merge(designDF, how="left", on="Sample")
     #merged_variants = merged_variants.merge(annotationDF, how="left", on="ID")
     merged_variants.to_csv(outVarIntermediatePath, sep="\t")
     # else:
@@ -567,4 +566,4 @@ if __name__ == "__main__":
     # for name,group in variants_only.groupby("Sample"):
     #     print(name)
     #     group.to_excel(writer, name, index=False)
-    # writer.save()
+    # writer.close()
