@@ -23,7 +23,7 @@ cmake --install . --prefix ${CONDA_PREFIX}/
 
 
 # (current methon) this worked when just linking pure htslib. Now going to try to add in wrapper as well
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib -Wl,-rpath-link=${CONDA_PREFIX}/lib" ../source/
+cmake -DCMAKE_BUILD_TYPE==RelWithDebInfo -DCMAKE_CXX_FLAGS="-I ${CONDA_PREFIX}/include -L ${CONDA_PREFIX}/lib -Wl,-rpath-link=${CONDA_PREFIX}/lib" ../source/
 
 
 # gdb testing
