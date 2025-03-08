@@ -320,7 +320,7 @@ def parseVariantTSV(fileName):
                 outList.append(entryDict)
     outDF = pd.DataFrame(outList)
     
-    outDF = outDF.replace('.', np.NaN)
+    outDF = outDF.replace('.', np.nan)
     
     outDF = outDF.set_index(["Chromosome", "Start", "ref", "alt"])
     return outDF    
