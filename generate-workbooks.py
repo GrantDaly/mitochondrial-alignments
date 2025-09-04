@@ -551,7 +551,7 @@ if __name__ == "__main__":
     #annotationDF = getAnnotationsAll(raw_variants.query('(ID != "NORSID") and (Genotype != "Ref")')['ID'])
     # merged_variants = raw_variants.reset_index().merge(designDF, how="left", on="Sample")
     #merged_variants = merged_variants.merge(annotationDF, how="left", on="ID")
-    merged_variants.to_csv(outVarIntermediatePath, sep="\t")
+    raw_variants.to_csv(outVarIntermediatePath, sep="\t")
     # else:
     #     merged_variants = pd.read_csv(outVarIntermediatePath, sep="\t")
     # # get variant counts
