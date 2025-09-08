@@ -47,3 +47,6 @@ target_link_libraries (call-variants seqan3::seqan3 hts GSL::gsl)
 
 add_executable(simulated-reads simulated-reads.cpp)
 target_link_libraries (simulated-reads seqan3::seqan3 hts-wrapper hts GSL::gsl)
+
+add_executable(mito-align mito-align.cpp)
+target_link_libraries (mito-align hts-wrapper hts GSL::gsl)
