@@ -10,10 +10,7 @@
 #include <htslib/kseq.h>
 #include <htslib/hts.h>
 #include <htslib/sam.h>
-typedef struct {
-  int mapping_qual=30;
-  char* input_filename= NULL;
-} args_t;
+
 
 
 /* ******* Read Name ******** */
@@ -31,6 +28,11 @@ typedef struct {
 
 /* ******** End Read Name ********** */
 
+typedef struct {
+  int mapping_qual=30;
+  char* input_filename= NULL;
+  char* read_two_filename = NULL;
+} args_t;
 
 args_t parse_args(int argc, char* argv[]){
   args_t parsed_params = args_t{};
@@ -43,13 +45,14 @@ args_t parse_args(int argc, char* argv[]){
                int option_index = 0;
                static struct option long_options[] = {
 		 {"input",     required_argument, NULL,  'i' },
+		 {"R2",     required_argument, NULL,  'm' },
                    {"quality",  required_argument,  0,  'q' },
                    // {"delete",  required_argument, 0,  0 },
                    {"verbose", no_argument,       0,  0 },
                    {0,         0,                 0,  0 }
                };
 
-               c = getopt_long(argc, argv, "i:q:",
+               c = getopt_long(argc, argv, "i:q:m:",
                                long_options, &option_index);
 	       printf("c=%d, option_index=%d\n", c, option_index);
                if (c == -1)
@@ -59,6 +62,11 @@ args_t parse_args(int argc, char* argv[]){
 		 printf("input\n");
 		 printf("input file name: %s\n", optarg);
 		 parsed_params.input_filename = optarg;
+		 break;
+	       case 'm':
+		 printf("read2\n");
+		 printf("read2 file name: %s\n", optarg);
+		 parsed_params.read_two_filename = optarg;
 		 break;
 	       case 'q':
 		 printf("qual\n");
@@ -89,12 +97,11 @@ int parse_fastq_entry(htsFile * fp,
   size_t readname_length{0};
   
   char* readname_delimiter_p = NULL;
-  printf("%s\n", line_one_string.s);
+  // printf("%s\n", line_one_string.s);
 
   /* ************ 1st Fastq Line ************** */
   // first line starts with '@', and read name is everything b/w '@' & first space
   int read_name_end = 0;
-  printf("First character %c\n", line_one_string.s[0]);
 
   // if end of file (-1) or not starting with '@', it's an invalid first line entry
   if((-2 >= line_one_length) || ('@' != line_one_string.s[0])) {
@@ -113,11 +120,11 @@ int parse_fastq_entry(htsFile * fp,
     }
     else {
       readname_length = readname_delimiter_p - line_one_string.s; //  -1 (to be last letter, not delimiter) + 1 (account for 0 indexing);
-      printf("Read name length: %lu, Read name: '%.*s'\n", readname_length -1,
-	     (int) readname_length -1, line_one_string.s + 1);
+      // printf("Read name length: %lu, Read name: '%.*s'\n", readname_length -1,
+	     // (int) readname_length -1, line_one_string.s + 1);
       // could add a check to make sure readname_length is never larger than MAX_READNAME_SIZE
       strncpy(read->name, line_one_string.s + 1, readname_length);
-      printf("Read name after copying in parse function: %s\n", read->name);
+      // printf("Read name after copying in parse function: %s\n", read->name);
     }
   }
 
@@ -125,15 +132,15 @@ int parse_fastq_entry(htsFile * fp,
   kstring_t line_two_string;
   ks_initialize(&line_two_string);
   int line_two_length = hts_getline(fp, KS_SEP_LINE, &line_two_string);
-  printf("%s\n", line_two_string.s);
+  // printf("%s\n", line_two_string.s);
 
   strncpy(read->bases, line_two_string.s, line_two_length);
-  printf("Bases after copying %s\n", read->bases);
+  // printf("Bases after copying %s\n", read->bases);
     /* ************* 3rd Fastq Line ******************* */
   kstring_t line_three_string;
   ks_initialize(&line_three_string);
   int line_three_length = hts_getline(fp, KS_SEP_LINE, &line_three_string);
-  printf("%s\n", line_three_string.s);
+  // printf("%s\n", line_three_string.s);
 
   if((-1 >= line_three_length) || ('+' != line_three_string.s[0])) {
     fprintf(stderr, "Invalid separator line from line three of fastq '%s'", line_three_string.s);
@@ -144,7 +151,7 @@ int parse_fastq_entry(htsFile * fp,
   kstring_t line_four_string;
   ks_initialize(&line_four_string);
   int line_four_length = hts_getline(fp, KS_SEP_LINE, &line_four_string);
-  printf("%s\n", line_four_string.s);
+  // printf("%s\n", line_four_string.s);
 
   if(-1 >= line_four_length) {
     fprintf(stderr, "Invalid read quality line from line four of fastq '%s'", line_four_string.s);
@@ -171,7 +178,9 @@ int parse_fastq_entry(htsFile * fp,
   ks_free(& line_two_string);
   ks_free(& line_three_string);
   ks_free(& line_four_string);
-  return 0;
+
+  // line two and four should both be the same length of the read
+  return line_two_length;
 }
 
 // to debug
@@ -187,6 +196,7 @@ int main (int argc, char *argv[]) {
 
   // this is a read which is designed to be large enough to handle any one illumina or nanoport read. Currently I plan to only allocate one read so I don't have to keep allocating memory.
   read_info_t read;
+  read_info_t read_two;
 
  args_t params = parse_args(argc, argv);
  // printf("mapping qual: %d", params.mapping_qual);
@@ -198,7 +208,12 @@ int main (int argc, char *argv[]) {
  const htsFormatCategory infile_format_cat = infile_format->category;
  const htsExactFormat infile_format_exact =  infile_format->format;
  const htsCompression infile_compression = infile_format->compression;
- 
+
+ htsFile * infile_two_p;
+ if(NULL != params.read_two_filename) {
+ infile_two_p = hts_open (params.read_two_filename, "r");
+ // not currently checking if read 2 is in correct format
+ }
  // from htslib, "1" for 'Sequence data -- SAM, BAM, CRAM, etc'. Appears to also recognize fasta and fastq.gz
  printf("file format %d\n", infile_format->category);
  if (1 != infile_format_cat)              
@@ -222,8 +237,25 @@ int main (int argc, char *argv[]) {
        printf("Don't support other fastq compression schemes\n");
      }
      // trying to just parse with htslib functions
-     parse_fastq_entry(infile_p, & read ,0);
-     printf("Read name after returning: %s\n", read.name);
+     int read_one_written{1};
+     while(0 < read_one_written){
+       read_one_written = parse_fastq_entry(infile_p, & read ,0);
+       printf("Read 1 number bases written %u\n", read_one_written);
+     // if(0 < read_one_written ){
+     //   read.read_1_end = read_one_written;
+     //   printf("Read 1 name: %s, Number of bases %u\n", read.name, read.read_1_end);
+     //   }
+
+       if(NULL != params.read_two_filename) {
+	 int read_two_written{1};
+	 read_two_written = parse_fastq_entry(infile_two_p, & read_two ,0);
+	 if(0 < read_two_written){
+	 printf("Read name 2 after returning: %s\n", read_two.name);
+	 }
+     }
+     }
+
+     
    }
  else if(0 != ((htsExactFormat::bam | htsExactFormat::sam) & infile_format_exact)){
    // bam or sam file. 
