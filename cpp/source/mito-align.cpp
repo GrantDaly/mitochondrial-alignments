@@ -115,17 +115,21 @@ int parse_fastq_entry(htsFile * fp,
   else {
     readname_delimiter_p = strchr(line_one_string.s, ' ');
     if(NULL == readname_delimiter_p) {
-          fprintf(stderr, "Malformed read name line from fastq '%s'", line_one_string.s);
-	  exit(EXIT_FAILURE);
+
+      // actually, valid read names do not need the extra info. Just going to skip if no extras.
+          // fprintf(stderr, "Malformed read name line from fastq '%s'", line_one_string.s);
+	  // exit(EXIT_FAILURE);
+      readname_length = (size_t) line_one_string.s - 1; // should be index of last character of read name
     }
     else {
       readname_length = readname_delimiter_p - line_one_string.s; //  -1 (to be last letter, not delimiter) + 1 (account for 0 indexing);
       // printf("Read name length: %lu, Read name: '%.*s'\n", readname_length -1,
 	     // (int) readname_length -1, line_one_string.s + 1);
       // could add a check to make sure readname_length is never larger than MAX_READNAME_SIZE
-      strncpy(read->name, line_one_string.s + 1, readname_length);
-      // printf("Read name after copying in parse function: %s\n", read->name);
+      
+      //printf("Read name after copying in parse function: %s\n", read->name);
     }
+    strncpy(read->name, line_one_string.s + 1, readname_length);
   }
 
   /* ************* 2nd Fastq Line ******************* */

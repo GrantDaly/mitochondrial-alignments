@@ -129,7 +129,14 @@ dmypy.json
 .pyre/
 
 # emacs
+# Ignore backup files
 *~
+
+# Ignore temporary files
+\#*
+
+# Ignore auto-save files
+\#*#
 
 # sentieon
 sentieon-genomics-*
