@@ -1,7 +1,10 @@
 #include "htslib/kstring.h"
+#include <cctype>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
+
+#include <faidx.h>
 #include <stdio.h> /*for printf */
 #include <getopt.h> /* for getopt_long */
 #include <stdlib.h> /* for exit */
@@ -11,16 +14,21 @@
 #include <htslib/hts.h>
 #include <htslib/sam.h>
 
+#include "align.cpp"
 
 
 /* ******* Read Name ******** */
 #define MAX_READNAME_SIZE 256 - 2
 #define MAX_READ_SIZE 65536
+
+/* Recommended macro in regex documentation */
+#define ARRAY_SIZE(arr) (sizeof((arr)) / sizeof((arr)[0]))
+
 typedef struct {
 
   char name[MAX_READNAME_SIZE];
   char bases[MAX_READ_SIZE];
-  unsigned base_qualities[MAX_READ_SIZE];
+  char base_qualities[MAX_READ_SIZE];
   // these are basically pointers. 0 means read1 is invalid. MAX_READ_SIZE means read2 is invalid. 
   unsigned short int read_1_end{0};
   unsigned short int read_2_begin{(unsigned short int)MAX_READ_SIZE};
@@ -32,6 +40,7 @@ typedef struct {
   int mapping_qual=30;
   char* input_filename= NULL;
   char* read_two_filename = NULL;
+  char* reference_filename = NULL;
 } args_t;
 
 args_t parse_args(int argc, char* argv[]){
@@ -46,6 +55,7 @@ args_t parse_args(int argc, char* argv[]){
                static struct option long_options[] = {
 		 {"input",     required_argument, NULL,  'i' },
 		 {"R2",     required_argument, NULL,  'm' },
+		 {"reference",     required_argument, NULL,  'r' },
                    {"quality",  required_argument,  0,  'q' },
                    // {"delete",  required_argument, 0,  0 },
                    {"verbose", no_argument,       0,  0 },
@@ -67,6 +77,10 @@ args_t parse_args(int argc, char* argv[]){
 		 printf("read2\n");
 		 printf("read2 file name: %s\n", optarg);
 		 parsed_params.read_two_filename = optarg;
+		 break;
+	       case 'r':
+		 printf("reference file name: %s\n", optarg);
+		 parsed_params.reference_filename = optarg;
 		 break;
 	       case 'q':
 		 printf("qual\n");
@@ -90,6 +104,7 @@ int parse_fastq_entry(htsFile * fp,
 		      int paired_end_flag) {
   // a properly formed fastq should be 4 lines
 
+
   // paired_end_flag, 0 for first (or only read), -1 for second read in pair 
   kstring_t line_one_string;
   ks_initialize(&line_one_string);
@@ -105,21 +120,24 @@ int parse_fastq_entry(htsFile * fp,
 
   // if end of file (-1) or not starting with '@', it's an invalid first line entry
   if((-2 >= line_one_length) || ('@' != line_one_string.s[0])) {
+     if (-1 == line_one_length){
+      return 0; // -1 means it was at EOF
+    }
+     else{
     fprintf(stderr, "Invalid read name line from fastq '%s'", line_one_string.s);
     // other requirements for read name. regex [!-?A-~]{1,254} seems like a good guideline. They also include a more extensive regex in the paper.
     exit(EXIT_FAILURE);
+     }
   }
-  else if (-1 == line_one_length){
-      return 0; // -1 means it was at EOF, which should only ocurr for a 1st fastq line
-    }
   else {
     readname_delimiter_p = strchr(line_one_string.s, ' ');
+    
     if(NULL == readname_delimiter_p) {
 
       // actually, valid read names do not need the extra info. Just going to skip if no extras.
           // fprintf(stderr, "Malformed read name line from fastq '%s'", line_one_string.s);
 	  // exit(EXIT_FAILURE);
-      readname_length = (size_t) line_one_string.s - 1; // should be index of last character of read name
+      readname_length = line_one_string.l - 1; // should be index of last character of read name
     }
     else {
       readname_length = readname_delimiter_p - line_one_string.s; //  -1 (to be last letter, not delimiter) + 1 (account for 0 indexing);
@@ -129,7 +147,18 @@ int parse_fastq_entry(htsFile * fp,
       
       //printf("Read name after copying in parse function: %s\n", read->name);
     }
+    // sed -E 's/@[0-9A-Za-z!#$%&+./:;?@^_|~-][0-9A-Za-z!#$%&*+./:;=?@^_|~-]+([[:space:]].+$)/<test>/g'
+
+    // regex_t FASTQ_READNAME_REGEX_PREG;
+    // int FASTQ_READNAME_REGEX_STATUS = regcomp(& FASTQ_READNAME_REGEX_PREG, "^@(.+)[:space:]|$",
+    //                REG_EXTENDED);
+
+    // size_t number_match{0};
+    // regmatch_t  pmatch[1];
+    // if(0 == regexec(& FASTQ_READNAME_REGEX_PREG,line_one_string.s, ARRAY_SIZE(pmatch), pmatch, 0))
+    //   printf("Regex Match\n");
     strncpy(read->name, line_one_string.s + 1, readname_length);
+
   }
 
   /* ************* 2nd Fastq Line ******************* */
@@ -139,6 +168,9 @@ int parse_fastq_entry(htsFile * fp,
   // printf("%s\n", line_two_string.s);
 
   strncpy(read->bases, line_two_string.s, line_two_length);
+  for(int i{0}; i < line_two_length; i++)
+   read->bases[i] = toupper(line_two_string.s[i]);
+ 
   // printf("Bases after copying %s\n", read->bases);
     /* ************* 3rd Fastq Line ******************* */
   kstring_t line_three_string;
@@ -166,7 +198,7 @@ int parse_fastq_entry(htsFile * fp,
     int i{0};
       while( i < line_four_length){
       read->base_qualities[i + paired_end_flag*MAX_READ_SIZE -
-			   paired_end_flag*line_four_length] = (unsigned)line_four_string.s[i] -33;
+			   paired_end_flag*line_four_length] = (signed char)line_four_string.s[i]; // -33
       // printf("%c", line_four_string.s[i]);
       // printf("%u",read->base_qualities[i + paired_end_flag*MAX_READ_SIZE -
       // 			   paired_end_flag*line_four_length]);
@@ -191,7 +223,7 @@ int parse_fastq_entry(htsFile * fp,
 // DEBUGINFOD_URLS="" gdb ./mito-align
 //  run --input ~/science/mitochondrial/rachek_2024/fastqs/LRH01_L0022_R1.fastq.gz
 
-int main (int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
  
  // printf("\ncmdline args count=%d", argc);
 
@@ -204,6 +236,16 @@ int main (int argc, char *argv[]) {
 
  args_t params = parse_args(argc, argv);
  // printf("mapping qual: %d", params.mapping_qual);
+
+ // load reference file
+ faidx_t* ref_fasta_ptr = fai_load_format(params.reference_filename,
+					  FAI_FASTA);
+ // todo: check length and verify mito contig in the file, hard code for now
+ int mito_length{0};
+ char* mito_ref_seq = faidx_fetch_seq(ref_fasta_ptr, "chrM", 0,16569, &mito_length);
+ for(int i{0}; i < mito_length; i++)
+   mito_ref_seq[i] = toupper(mito_ref_seq[i]);
+ 
 
 
  // will first only allow to read in from unsorted or name sorted bams. This is to allow metadata to be added for sample name, flowcell, etc.
@@ -239,27 +281,36 @@ int main (int argc, char *argv[]) {
      }
      else {
        printf("Don't support other fastq compression schemes\n");
+       // todo: error
      }
      // trying to just parse with htslib functions
      int read_one_written{1};
      while(0 < read_one_written){
        read_one_written = parse_fastq_entry(infile_p, & read ,0);
-       printf("Read 1 number bases written %u\n", read_one_written);
-     // if(0 < read_one_written ){
-     //   read.read_1_end = read_one_written;
-     //   printf("Read 1 name: %s, Number of bases %u\n", read.name, read.read_1_end);
-     //   }
+       
+     if(0 < read_one_written ){
+       // read.read_1_end = read_one_written;
+       printf("Read 1 name: %s\n", read.name);
+       fwrite(read.bases, 1, read_one_written, stdout);
+       printf("\n");
+       fwrite(read.base_qualities, 1, read_one_written, stdout);
+       printf("\n");
+       // for(int i{0}; i < read_one_written;i++)
+       // 	 printf("%i",read.bases[i],(int)read.base_qualities[i] -33);
+       //fwrite("\n", sizeof(char),1, stdout);
+       // printf("\n");
+       }
 
        if(NULL != params.read_two_filename) {
 	 int read_two_written{1};
 	 read_two_written = parse_fastq_entry(infile_two_p, & read_two ,0);
 	 if(0 < read_two_written){
-	 printf("Read name 2 after returning: %s\n", read_two.name);
+	 printf("Read 2 name: %s\n", read_two.name);
+         fwrite(read_two.bases, 1, read_two_written, stdout);
+         fwrite("\n", sizeof(char),1, stdout);
 	 }
      }
      }
-
-     
    }
  else if(0 != ((htsExactFormat::bam | htsExactFormat::sam) & infile_format_exact)){
    // bam or sam file. 
