@@ -45,3 +45,13 @@ target_link_libraries (simulated-reads seqan3::seqan3 hts-wrapper hts GSL::gsl)
 
 add_executable(mito-align source/mito-align.cpp)
 target_link_libraries (mito-align hts-wrapper hts GSL::gsl)
+
+if(PROJECT_IS_TOP_LEVEL)
+  enable_testing()
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tests)
+  add_test(NAME MitoInsertTest COMMAND inserts-and-cov
+    --bed mito.human.bed 
+    --prefix Mitochondria --bam s9_floatT1.bam 
+    --outDir raw-postprocess --name S9
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/tests)
+endif()
