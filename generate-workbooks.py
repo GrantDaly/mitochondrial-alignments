@@ -2,7 +2,7 @@ import pdb
 import pandas as pd
 import numpy as np
 from pathlib import Path
-import pyranges as pr
+#import pyranges as pr
 import sys
 from pathlib import Path
 import json
@@ -138,7 +138,7 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
             outGroupNorm = outGroupNorm.loc[:, ["Chromosome", "Start", "End", "Norm Depth"]]
             #outGroupNorm.to_csv(outDirNorm / (outNameNorm + ".bg"), sep="\t", index=False, header=False)
 
-            tempPyRangesRaw = pr.PyRanges(outGroupRawAll)
+            #tempPyRangesRaw = pr.PyRanges(outGroupRawAll)
 
             outRawString = str(outDirRaw / (outNameRaw + ".bw"))
             outRawStringFor = str(outDirRaw / (outNameRaw + ".F1R2.bw"))
@@ -194,7 +194,7 @@ def createBigWigs(coverageDir, designDF, normMitoCov):
                                   'Condition-Strand': "NA"})
 
 
-            tempPyRangesNorm = pr.PyRanges(outGroupNorm)
+            #tempPyRangesNorm = pr.PyRanges(outGroupNorm)
             outNormString = str(outDirNorm / (outNameNorm + ".bw"))
             tempPyRangesNorm.to_bigwig(path = outNormString, value_col="Norm Depth")
             normDesignList.append({'TRACK_ID': outNameNorm + ".bw", 'INDIVIDUAL_ID': individual,
@@ -344,6 +344,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
     #print(args)
 
+    if(args.parameters == None):
+        print("Error: Command-line arguments required")
+        exit(1) 
     with open(args.parameters) as paramFile:
         params = json.load(paramFile)
 
@@ -517,7 +520,7 @@ if __name__ == "__main__":
     writer.close()
 
     # write bigwig files
-    print("Creating Bigwig Files")
+    # print("Creating Bigwig Files")
     outDirCoverage = Path(outputDir  / "coverage")
     if not outDirCoverage.is_dir():
         outDirCoverage.mkdir()
@@ -532,6 +535,7 @@ if __name__ == "__main__":
     # if there aren't heteroplasmy files, exit
     inVarTSV = inputDir / "out.heteroplasmy.tsv.gz"
     if(not inVarTSV.is_file()):
+        print("No heteroplasmy file found")
         exit()
     print("Processing Variants")
     # if allowing skpping regen and the file already exists then read it in
